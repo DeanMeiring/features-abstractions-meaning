@@ -59,6 +59,10 @@ Experiment 6, originals (top) vs rebuilt from 49 level-1 words (middle) vs from 
    - *Level 1 (49 bytes):* at 50 labels, level-1 words beat both a 7×7 thumbnail and PCA-49 by at least 5 points.
 
    **Result: both failed** (+1.1 points over PCA-16, +1.7 over the 7×7 thumbnail). See experiment 7.
+
+   **Success bar for experiment 8, fixed before running** (predict instead of copy: during training a random half of each image is hidden in half the batch, and the model must rebuild the whole image; every word sees the whole image. A control model with the same wider view is trained the old way, copying only. Same 49-byte words, same 20 picks):
+   - *Main:* at 50 labels, predict-words beat the 7×7 thumbnail by at least 5 points.
+   - *Cause:* at 50 labels, predict-words beat the control's words by at least 2 points (so any gain comes from predicting, not the wider view).
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
