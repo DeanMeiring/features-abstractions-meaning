@@ -106,6 +106,10 @@ Experiment 12, one test-month rush hour on sensor 400209: actual speed vs foreca
    - *Words keep it:* C's error is within 2% of B's, while neighbours send at least 5x fewer bytes (2 words vs 12 one-byte readings each).
 
    **Result: network helps FAIL** (2.4% cut, bar 3%); **words keep it PASS, but only because the raw network gain was small** (words kept ~1/6 of it). See experiment 12.
+
+   **Success bar for experiment 13, fixed before running** (connections with direction: each sensor's 5 nearest neighbours **ahead** (downstream, where a jam's queue starts) or **behind** (upstream), from the directional road distances; same LightGBM and the same hour words as experiment 12; judged on the 60-minute forecast):
+   - *Direction matters:* the better direction's raw-neighbour input cuts A's error by at least 3%.
+   - *Words keep the gain* (corrected from experiment 12): that direction's words input keeps at least half of the raw input's improvement over A, with neighbours sending at least 5x fewer bytes.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
