@@ -39,6 +39,10 @@ Experiment 4, originals (top, 784 bytes) vs rebuilt from 49 words (bottom, 49 by
 ### Next steps
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
+
+   **Success bar for experiment 6, fixed before running** (level 2: each image as a 4×4 grid = 16 words, each word summarising a 3×3 block of level-1 words; model B averaged over 20 random picks per label size):
+   - *Keep level 2 (MDL pass):* at 50 and 100 labels, level-2 words score no more than 1 point below level-1 words, while the message shrinks from 49 to 16 bytes.
+   - *Higher-level words help more:* at 50 labels, level-2 words beat level-1 words by at least 2 points.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
