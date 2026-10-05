@@ -4,11 +4,13 @@
     compact   bytes per item and rebuild error (measured by the caller)
     units     bag of words (counts only) vs reading the words in order
     stable    train twice with different seeds: do the same words come back?
+    luck      confidence intervals: is a difference real, or within the noise?
 
 Words are given as (items, words per item) arrays of symbol numbers 0-255.
 """
 
 import numpy as np
+from scipy import stats
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -76,10 +78,35 @@ def bag_of_words(words: np.ndarray, vocab: int = 256) -> np.ndarray:
     return counts
 
 
-def few_label_accuracy(train_x, train_y, test_x, test_y, picks) -> float:
-    """Mean test accuracy of a linear model B trained on each pick of labelled items."""
-    return float(np.mean([
+def few_label_scores(train_x, train_y, test_x, test_y, picks) -> np.ndarray:
+    """Test accuracy of a linear model B trained on each pick of labelled items (one score per pick)."""
+    return np.array([
         make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
         .fit(train_x[p], train_y[p]).score(test_x, test_y)
         for p in picks
-    ]))
+    ])
+
+
+def few_label_accuracy(train_x, train_y, test_x, test_y, picks) -> float:
+    """Mean test accuracy of a linear model B over the picks."""
+    return float(few_label_scores(train_x, train_y, test_x, test_y, picks).mean())
+
+
+def interval(scores: np.ndarray, level: float = 0.95) -> tuple[float, float, float]:
+    """Mean and its confidence interval: (mean, low, high).
+
+    The scores vary from pick to pick by luck; the interval is the range the
+    true mean likely lies in (95%: wrong about 1 time in 20). For a comparison,
+    pass the PAIRED differences (a minus b on the same picks): each pick then
+    tests both inputs on the same labelled items, which removes most of the luck.
+    """
+    scores = np.asarray(scores, dtype=float)
+    half = stats.t.ppf((1 + level) / 2, len(scores) - 1) * scores.std(ddof=1) / np.sqrt(len(scores))
+    return float(scores.mean()), float(scores.mean() - half), float(scores.mean() + half)
+
+
+def verdict(low: float, high: float, bar: float, higher_is_better: bool = True) -> str:
+    """CLEAR PASS / CLEAR FAIL if the whole interval is on one side of the bar, else TOO CLOSE TO CALL."""
+    if higher_is_better:
+        return "CLEAR PASS" if low >= bar else "CLEAR FAIL" if high < bar else "TOO CLOSE TO CALL"
+    return "CLEAR PASS" if high <= bar else "CLEAR FAIL" if low > bar else "TOO CLOSE TO CALL"
