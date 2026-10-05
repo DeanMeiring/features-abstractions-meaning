@@ -30,6 +30,34 @@ def load_road_links(sensor_ids: np.ndarray) -> pd.DataFrame:
     return links[known & (links["from"] != links["to"])].reset_index(drop=True)
 
 
+def nearest_neighbours(sensor_ids: np.ndarray, k: int = 5, direction: str = "ahead") -> tuple[np.ndarray, int]:
+    """Each sensor's k nearest sensors along the road, in one direction of traffic.
+
+    ahead:  sensors you drive TO (downstream), where a jam's queue starts
+    behind: sensors that drive TO you (upstream), where your traffic comes from
+    The road distances are directional (from -> to). When two sensors are linked
+    both ways, the shorter route decides which way is "ahead". Sensors with fewer
+    than k linked in that direction get their gaps filled by map distance
+    (ranked after every road-linked sensor). Returns (neighbours (sensors, k),
+    how many sensors needed filling).
+    """
+    index = {s: i for i, s in enumerate(sensor_ids)}
+    n = len(sensor_ids)
+    drive = np.full((n, n), np.inf)  # drive[i, j]: metres from sensor i to sensor j along the road
+    for a, b, metres in load_road_links(sensor_ids)[["from", "to", "metres"]].itertuples(index=False):
+        drive[index[a], index[b]] = min(drive[index[a], index[b]], metres)
+    ahead = np.where(drive <= drive.T, drive, np.inf)  # keep each link in its shorter direction only
+    road = ahead if direction == "ahead" else ahead.T
+
+    meta = pd.read_csv(RAW / "pems_bay_meta.csv").set_index("sensor_id").loc[sensor_ids]
+    lat, lon = np.radians(meta["Latitude"].values), np.radians(meta["Longitude"].values)
+    on_map = 6_371_000 * np.hypot(lat[:, None] - lat[None, :], (lon[:, None] - lon[None, :]) * np.cos(lat.mean()))
+    ranking = np.where(np.isfinite(road), road, 1e9 + on_map)
+    np.fill_diagonal(ranking, np.inf)
+    filled = int((np.isfinite(road).sum(axis=1) < k).sum())
+    return np.argsort(ranking, axis=1)[:, :k], filled
+
+
 def split_points(n_steps: int) -> tuple[int, int]:
     """Time steps where validation and test start (70% / 10% / 20%)."""
     return round(n_steps * 0.7), round(n_steps * 0.8)
