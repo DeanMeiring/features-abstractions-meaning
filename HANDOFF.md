@@ -8,7 +8,7 @@ Explain each step briefly as you go; the developer is learning. Keep output shor
 
 1. **Clone** `https://github.com/DeanMeiring/features-abstractions-meaning` (skip if already cloned) and read `CLAUDE.md` and `README.md` fully.
 2. **Check the specs** and show them in a short table: OS, CPU model and cores/threads, RAM, free disk, Python version (3.11+), GPU (`nvidia-smi`: model and VRAM, or "none").
-3. **Compute limit.** `fam/compute.py` caps CPU threads at `SHARE` (now 30%) of logical cores for torch, LightGBM and BLAS, and caps NVIDIA GPU memory at the same share. Every experiment imports it first.
+3. **Compute limit.** `fam/compute.py` caps CPU threads at `SHARE` (now 30%) of logical cores for torch, LightGBM and BLAS, and caps NVIDIA GPU memory at a separate setting, `GPU_SHARE` (also 30% for now). Every experiment imports it first.
    - **Ask the developer what GPU-memory limit to use on this laptop.** At 30%, a 4–6 GB laptop GPU leaves 1.2–1.8 GB, which is too small to fine-tune even a small LLM. Options discussed: a higher GPU-memory share for training runs (e.g. 70–80%) while keeping CPU at 30%, or keeping 30% and doing LLM training on a free GPU notebook (Kaggle / Colab, 16 GB). Change only `GPU_SHARE` in `fam/compute.py` for this. Don't raise `SHARE`: it sets CPU threads and the RAM budget, so raising it would raise CPU use too. If the developer chooses a different GPU limit, update the compute-limit rule in CLAUDE.md to match.
    - Be honest about what can't be capped: GPU compute can't be hard-limited from PyTorch, only its memory; RAM isn't hard-capped (keep batches small).
    - Verify while something trains: `python scripts/monitor_cpu.py experiments/01_num_addon_services.py` should show CPU at or under the limit.
