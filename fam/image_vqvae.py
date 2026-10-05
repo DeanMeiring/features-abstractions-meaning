@@ -7,6 +7,14 @@ that slide over the image and respond to local shapes (edges, curves,
 textures). Two steps of halving the size (28 -> 14 -> 7) leave a 7x7 grid,
 where each cell describes a 4x4 patch of the picture. Each cell is snapped
 to a word, so an image becomes 49 words, i.e. 49 bytes instead of 784.
+
+Two options (experiment 8), both off by default:
+  wide=True        3 extra layers so every word sees the whole image, not
+                   just the ~10x10 pixels around its own patch.
+  hide_halves=True training job changes from "copy the image" to "predict
+                   it": in half of each batch, a random half of every image
+                   (top, bottom, left or right) is blacked out, but the
+                   model must still rebuild the whole image.
 """
 
 import numpy as np
@@ -16,16 +24,22 @@ from torch.nn import functional as F
 
 
 class ImageVQVAE(nn.Module):
-    def __init__(self, slot_size: int = 16, vocab_size: int = 256):
+    def __init__(self, slot_size: int = 16, vocab_size: int = 256, wide: bool = False):
         super().__init__()
         self.slot_size = slot_size
-        self.encoder = nn.Sequential(
+        layers = [
             nn.Conv2d(1, 32, kernel_size=4, stride=2, padding=1),   # 28x28 -> 14x14
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),  # 14x14 -> 7x7
             nn.ReLU(),
-            nn.Conv2d(64, slot_size, kernel_size=1),                # one slot per grid cell
-        )
+        ]
+        if wide:
+            # Each 3x3 layer lets a cell see one more cell in every direction;
+            # after 3 of them, every cell sees the whole 7x7 grid.
+            for _ in range(3):
+                layers += [nn.Conv2d(64, 64, kernel_size=3, padding=1), nn.ReLU()]
+        layers.append(nn.Conv2d(64, slot_size, kernel_size=1))      # one slot per grid cell
+        self.encoder = nn.Sequential(*layers)
         self.decoder = nn.Sequential(
             nn.Conv2d(slot_size, 64, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -54,11 +68,28 @@ def to_tensor(images: np.ndarray) -> torch.Tensor:
     return torch.tensor(images, dtype=torch.float32).unsqueeze(1) / 255.0
 
 
-def train(images: np.ndarray, epochs: int = 5, batch_size: int = 128, seed: int = 42) -> ImageVQVAE:
+def hide_random_halves(x: torch.Tensor) -> torch.Tensor:
+    """Black out a random half (top, bottom, left or right) of the first half of the batch."""
+    x = x.clone()
+    for i in range(len(x) // 2):
+        side = torch.randint(4, ()).item()
+        if side == 0:
+            x[i, :, :14] = 0
+        elif side == 1:
+            x[i, :, 14:] = 0
+        elif side == 2:
+            x[i, :, :, :14] = 0
+        else:
+            x[i, :, :, 14:] = 0
+    return x
+
+
+def train(images: np.ndarray, epochs: int = 5, batch_size: int = 128, seed: int = 42,
+          wide: bool = False, hide_halves: bool = False) -> ImageVQVAE:
     """Learn the vocabulary from images alone (no labels)."""
     torch.manual_seed(seed)
     x_all = to_tensor(images)
-    model = ImageVQVAE()
+    model = ImageVQVAE(wide=wide)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
 
     for epoch in range(epochs):
@@ -67,7 +98,8 @@ def train(images: np.ndarray, epochs: int = 5, batch_size: int = 128, seed: int 
         total = 0.0
         for start in range(0, len(x_all), batch_size):
             x = x_all[order[start:start + batch_size]]
-            slots = model.slots(x)
+            seen = hide_random_halves(x) if hide_halves else x
+            slots = model.slots(seen)
             words = model.nearest_words(slots)
             snapped = model.codebook[words]
             used[words.flatten()] = True
@@ -75,7 +107,7 @@ def train(images: np.ndarray, epochs: int = 5, batch_size: int = 128, seed: int 
             # Straight-through trick, vocab loss and commit loss: see fam/vqvae.py.
             passed_on = slots + (snapped - slots).detach()
             rebuilt = model.decoder(passed_on.permute(0, 3, 1, 2))
-            rebuild_loss = F.mse_loss(rebuilt, x)
+            rebuild_loss = F.mse_loss(rebuilt, x)  # always the whole image, hidden part included
             loss = (
                 rebuild_loss
                 + F.mse_loss(snapped, slots.detach())

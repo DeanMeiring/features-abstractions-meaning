@@ -24,6 +24,7 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 | 5 | Experiment 4's words vs standard methods: PCA (49 numbers), PNG, JPEG | Words beat PCA by 9–11 points at 50–100 labels (PCA 50.5% / 58.8%) · rebuild error words 0.0050 vs PCA 0.0121 · 10x smaller than PNG, 4x smaller than JPEG q50 (but JPEG keeps ~3x more detail, rebuild error 0.0016) | Beats PCA, the classic compression for features, and beats file formats on size. Against JPEG it's a different trade-off, not a strict win: logos and fine patterns blur. |
 | 6 | Words of words: a second VQ-VAE reads only the level-1 words and writes each image as a 4×4 grid of **16 level-2 words** (each summarising a 3×3 block of level-1 words). Model B over 20 picks | 50 labels: pixels 57.4% · level 1 61.3% · level 2 59.5% · 100 labels: 67.9% · 70.5% · 67.8% · level 2 recovers 44% of level-1 words · **29x smaller than zipped pixels** (16 bytes per image) | **Failed the bar fixed in advance** (level 2 was 1.8 / 2.7 points below level 1 at 50 / 100 labels; the bar allowed 1). A 3x shorter message, but it lost meaning model B needed. With 20 picks, level 1's win over pixels holds (+3.9 / +2.6 points). |
 | 7 | Same-size test: our words vs a thumbnail and PCA at the same bytes per image (16 and 49), model B over the same 20 picks | Rebuild error: 16 B words 0.0143 vs PCA-16 0.0204 vs 4×4 thumbnail 0.0546 · 49 B words 0.0049 vs PCA-49 0.0121 vs 7×7 thumbnail 0.0330 · 50 labels: 16 B words 59.5% vs PCA-16 58.4% · 49 B words 61.3% vs 7×7 thumbnail 59.7% | **Failed the bar fixed in advance** (+5 points; got +1.1 / +1.7). Compression is real: words keep far more picture than standard methods at the same size. But for learning from few labels, a plain blurry 7×7 thumbnail already beats full pixels (59.7% vs 57.4%), so most of the words' gain over pixels comes from fewer, smoother numbers, not meaning. Also shows PCA-49 is a weak few-label baseline, so experiment 5's 9–11 point win over PCA overstates the words' advantage. |
+| 8 | Predict instead of copy: words trained to rebuild the whole image while a random half is hidden (wide view: every word sees the whole image), vs a control with the same wide view trained to copy | Hidden-half rebuild error: predict 0.019 vs control 0.107 vs copy 0.105 · 50 labels: thumbnail 59.7% · copy 61.3% · control 61.7% · predict 60.7% | **Failed the bar fixed in advance** (main: +1.0 vs thumbnail, bar +5; cause: −1.0 vs control, bar +2). The predict model clearly learned what clothes look like (it redraws a hidden boot or trouser leg from the other half), but that knowledge didn't make its words easier for model B to learn classes from. |
 
 All Telco AUCs are averaged over repeated cross-validation splits (15 for experiment 1, 10 for 2–3), so one lucky test split can't decide a result. In experiments 2–3, model B predicts a different task (long contract vs month-to-month) with the `Contract` column hidden from both models. Image accuracies are averaged over 5 random picks of labelled images per size, tested on the 10,000 test images.
 
@@ -35,6 +36,10 @@ Experiment 6, originals (top) vs rebuilt from 49 level-1 words (middle) vs from 
 
 ![Originals vs level-1 vs level-2 rebuilds](results/06_words_of_words.png)
 
+Experiment 8, half of each image hidden (top row) and each model's guess at the whole image. Only the predict model fills in the missing half:
+
+![Hidden-half guesses by copy, control and predict words](results/08_predict_words.png)
+
 ### What we've learned
 
 - **On small, clean data, raw features win.** Telco is small and clean; LightGBM finds the patterns itself, even from 50 labels. The learned language matters more where raw data is big, messy, or hard to read directly (images helped; Telco didn't).
@@ -43,6 +48,7 @@ Experiment 6, originals (top) vs rebuilt from 49 level-1 words (middle) vs from 
 - **Current words are low-level.** Each image word describes a 4×4 patch ("edge here"), not a concept ("shoe sole"). The gain over pixels is modest (~3 points) and partly within noise.
 - **Squeezing harder isn't the same as abstracting.** Level 2 was trained to rebuild the level-1 words, so it kept what the image *looks like* at lower resolution (blurrier shapes) rather than what it *is*. Shorter messages, but the lost detail was detail model B used. A rebuild objective may not be enough to make higher-level words more meaningful.
 - **Words trained to rebuild are good compressors, not yet meaningful.** At the same size they keep 1.4–2.5x more of the picture than PCA, but a simple thumbnail gets most of their few-label gain. Experiments 2, 6 and 7 all point the same way: to carry meaning, words probably need a different job, such as predicting a hidden part or what comes next, rather than rebuilding the input.
+- **Knowing isn't the same as being easy to read.** In experiment 8 the predict model learned real knowledge about clothing shapes, yet model B (a simple linear reader with 50 labels) did no better with its words. The knowledge may sit in the decoder, or in a form a linear reader can't use. Open question: is the problem the words, or the reader?
 
 ### Next steps
 
@@ -63,6 +69,8 @@ Experiment 6, originals (top) vs rebuilt from 49 level-1 words (middle) vs from 
    **Success bar for experiment 8, fixed before running** (predict instead of copy: during training a random half of each image is hidden in half the batch, and the model must rebuild the whole image; every word sees the whole image. A control model with the same wider view is trained the old way, copying only. Same 49-byte words, same 20 picks):
    - *Main:* at 50 labels, predict-words beat the 7×7 thumbnail by at least 5 points.
    - *Cause:* at 50 labels, predict-words beat the control's words by at least 2 points (so any gain comes from predicting, not the wider view).
+
+   **Result: both failed** (+1.0 points over the thumbnail, −1.0 vs the control). See experiment 8.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
@@ -80,6 +88,7 @@ python experiments/04_fashion_vqvae.py # ~7 min on 2 CPUs; saves model A to data
 python experiments/05_vs_standard.py   # needs experiment 4 first
 python experiments/06_words_of_words.py # needs experiment 4 first; ~6 min at 4 threads
 python experiments/07_same_size.py      # needs experiments 4 and 6; ~30 s
+python experiments/08_predict_words.py  # needs experiment 4; ~13 min at 4 threads (trains 2 models)
 ```
 
 ## Layout
