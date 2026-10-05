@@ -85,8 +85,8 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 ### Next steps
 
 **Current plan (after experiment 16; see CLAUDE.md "Plan"):** the experiments drifted into word-encoding variants while the library and the traffic question waited, so the order is now:
-1. **PEMS-BAY post-mortem (experiment 17):** can any reasonable forecaster get a real gain from neighbours' raw data? Decides whether the library needs a time dimension.
-2. **Library v0:** SQLite end-to-end on experiment 10's set words: dictionaries, word cards, messages, scorecards, queries.
+1. ~~**PEMS-BAY post-mortem (experiment 17)**~~ **Done: FAIL.** Neighbours give every forecaster only ~2.5–3.5%, so "many connected points" is under review and the library stores point and time as plain labels.
+2. **Library v0 (next):** SQLite end-to-end on experiment 10's set words: dictionaries, word cards, messages, scorecards, queries.
 3. **Reader LLM:** an off-the-shelf LLM reading word cards first; a trained adapter only if that pays off.
 4. **Telecom:** the same recipe on telecom data.
 
@@ -209,3 +209,6 @@ python experiments/17_traffic_postmortem.py # ~15 min at 4 threads
 - `experiments/`: one script per experiment, numbered in order
 - `results/`: saved pictures from experiments
 - `scripts/download_data.py`: downloads and verifies the datasets
+- `scripts/monitor_cpu.py`: runs an experiment and reports its CPU use as % of the machine and its peak RAM, to check the compute limit
+- `HANDOFF.md`: setup steps for a new machine, and the decisions and open questions from the 2026-10-05 session
+- `fam_workflow.drawio`: a workflow diagram (draw.io)
