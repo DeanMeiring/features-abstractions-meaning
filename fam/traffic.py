@@ -30,24 +30,55 @@ def load_road_links(sensor_ids: np.ndarray) -> pd.DataFrame:
     return links[known & (links["from"] != links["to"])].reset_index(drop=True)
 
 
+def road_distances(sensor_ids: np.ndarray) -> np.ndarray:
+    """drive[i, j]: metres from sensor i to sensor j along the road (inf if not linked)."""
+    index = {s: i for i, s in enumerate(sensor_ids)}
+    drive = np.full((len(sensor_ids), len(sensor_ids)), np.inf)
+    for a, b, metres in load_road_links(sensor_ids)[["from", "to", "metres"]].itertuples(index=False):
+        drive[index[a], index[b]] = min(drive[index[a], index[b]], metres)
+    return drive
+
+
+def road_weights(sensor_ids: np.ndarray, keep: float = 0.1) -> np.ndarray:
+    """How strongly each pair of sensors is linked, from road distance (as in DCRNN):
+    w = exp(-(distance / spread)^2), so close sensors ~1 and far ones ~0; weak links
+    (below `keep`) are dropped. Directional: w[i, j] follows the road from i to j."""
+    drive = road_distances(sensor_ids)
+    spread = drive[np.isfinite(drive)].std()
+    weights = np.where(np.isfinite(drive), np.exp(-(drive / spread) ** 2), 0.0)
+    weights[weights < keep] = 0.0
+    np.fill_diagonal(weights, 0.0)
+    return weights
+
+
+def day_bootstrap_gain(err_without: np.ndarray, err_with: np.ndarray, days: np.ndarray,
+                       draws: int = 2000, seed: int = 0) -> tuple[float, float, float]:
+    """Relative error reduction from adding neighbours, 1 - error_with / error_without,
+    with a 95% interval from resampling whole days (readings within a day are linked,
+    so resampling single readings would make the interval look falsely tight)."""
+    unique, day_index = np.unique(days, return_inverse=True)
+    without = np.bincount(day_index, weights=err_without, minlength=len(unique))
+    with_ = np.bincount(day_index, weights=err_with, minlength=len(unique))
+    picks = np.random.default_rng(seed).integers(len(unique), size=(draws, len(unique)))
+    gains = 1 - with_[picks].sum(axis=1) / without[picks].sum(axis=1)
+    return float(1 - with_.sum() / without.sum()), float(np.percentile(gains, 2.5)), float(np.percentile(gains, 97.5))
+
+
 def nearest_neighbours(sensor_ids: np.ndarray, k: int = 5, direction: str = "ahead") -> tuple[np.ndarray, int]:
     """Each sensor's k nearest sensors along the road, in one direction of traffic.
 
     ahead:  sensors you drive TO (downstream), where a jam's queue starts
     behind: sensors that drive TO you (upstream), where your traffic comes from
+    any:    either way (experiment 12)
     The road distances are directional (from -> to). When two sensors are linked
     both ways, the shorter route decides which way is "ahead". Sensors with fewer
     than k linked in that direction get their gaps filled by map distance
     (ranked after every road-linked sensor). Returns (neighbours (sensors, k),
     how many sensors needed filling).
     """
-    index = {s: i for i, s in enumerate(sensor_ids)}
-    n = len(sensor_ids)
-    drive = np.full((n, n), np.inf)  # drive[i, j]: metres from sensor i to sensor j along the road
-    for a, b, metres in load_road_links(sensor_ids)[["from", "to", "metres"]].itertuples(index=False):
-        drive[index[a], index[b]] = min(drive[index[a], index[b]], metres)
+    drive = road_distances(sensor_ids)
     ahead = np.where(drive <= drive.T, drive, np.inf)  # keep each link in its shorter direction only
-    road = ahead if direction == "ahead" else ahead.T
+    road = {"ahead": ahead, "behind": ahead.T, "any": np.minimum(drive, drive.T)}[direction]
 
     meta = pd.read_csv(RAW / "pems_bay_meta.csv").set_index("sensor_id").loc[sensor_ids]
     lat, lon = np.radians(meta["Latitude"].values), np.radians(meta["Longitude"].values)
