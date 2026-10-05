@@ -117,6 +117,12 @@ Experiment 13, the same jam with neighbours chosen along the direction of traffi
    - *Words keep the gain* (corrected from experiment 12): that direction's words input keeps at least half of the raw input's improvement over A, with neighbours sending at least 5x fewer bytes.
 
    **Result: both failed** (2.6% cut; words kept 14% of it). See experiment 13.
+
+   **Success bar for experiment 14, fixed before running** (back to Fashion-MNIST to get the words right first. Flat words (experiment 10: 8 symbols from 256 unrelated words) vs a learned Chinese-style alphabet (8 symbols, each = 1 of 16 radicals + 1 of 16 details, still 1 byte), each trained twice with different seeds and run through one scorecard: meaning, compactness, units, stability, radicals. Stability: when a symbol appears on an image in training 1, how often its best-matching symbol from training 2 appears on the same image. All at 50 labels, averaged over both seeds):
+   - *Fair swap:* the alphabet's accuracy is within 1 point of flat words.
+   - *More stable:* the alphabet's stability beats flat words by at least 10 points.
+   - *Radicals carry the meaning:* radicals alone reach at least 90% of the full alphabet's accuracy.
+   - *Usable shared language:* the better recipe's stability is at least 70%.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
