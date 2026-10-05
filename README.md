@@ -94,6 +94,10 @@ Experiment 10, originals (top), rebuilt from 8 self-contained words (middle), an
    - *Words carry meaning:* at 50 labels, with the best reader, the 8 words reach at least the 7×7 thumbnail's accuracy (49 bytes, same reader type) and beat PCA-8 (8 bytes) by at least 2 points.
 
    **Result: words carry meaning PASS** (61.3% vs thumbnail 59.3%, +2.4 over PCA-8); **words are units FAIL** (bag of words −22.2 points at 50 labels, though only −1.4 at 1,000 and +0.5 at 60,000). See experiment 10.
+
+   **Success bar for experiment 12, fixed before running** (PEMS-BAY: do neighbours' words help a sensor forecast? Each sensor's last hour becomes 2 self-contained words from a 256-word dictionary, trained on the training months only to describe that hour and predict the next. Same LightGBM for: A = own last hour; B = own hour + 5 nearest neighbours' raw hours; C = own hour + 5 neighbours' words. Judged on the 60-minute forecast, test period):
+   - *Network helps:* B or C cuts A's error by at least 3%.
+   - *Words keep it:* C's error is within 2% of B's, while neighbours send at least 5x fewer bytes (2 words vs 12 one-byte readings each).
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
