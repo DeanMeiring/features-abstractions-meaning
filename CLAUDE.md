@@ -62,6 +62,8 @@ Features learned by one model, stored in the library in compact form, make a sec
 
 **Open question: better, or cheaper?** After experiment 10 the developer considered narrowing the claim to efficiency (the same accuracy as raw data at much lower cost: data moved, training time, labels), since large models already lead on accuracy. As of 2026-10-05 it's undecided ("too early to say"). It was raised after modest accuracy results, so if it's adopted later, record it as a dated change, and don't re-judge past experiments against it. So far neither an accuracy win at a scale that matters nor an efficiency win has been shown.
 
+**Open question: a bar for the PoC as a whole.** Per-experiment bars never say when the PoC as a whole is proven or should stop, which is how experiments 6–16 drifted. As of 2026-10-05 this is deliberately left open, because it depends on the better-vs-cheaper question above, which the developer is still exploring (it may lean either way, or stay neutral). It still needs: what result, on non-toy data (PEMS-BAY or telecom), counts as "proven"; by what date (the ~2027-02 target alongside the friend's build is the natural one); and what counts as "stop or rethink". Until it's set, revisit this question whenever a non-toy experiment finishes, so the open bar doesn't become a reason to drift.
+
 ### Success criteria (define before building)
 
 Fix the bar in the README before each experiment, so results can't be rationalised afterwards. Candidate metrics for model B, words vs. raw-only:
@@ -74,10 +76,14 @@ Since experiment 16, a bar only counts as passed if the **whole 95% confidence i
 
 ## Plan
 
-**Where it stands (experiments 1–16, details in the README):** on Fashion-MNIST, learned words clearly beat raw pixels with few labels, self-contained set words (8 bytes) clearly beat a 49-byte thumbnail, and a new model can learn a frozen dictionary well enough to be mostly understood by others. All effects are small and on a toy dataset. On PEMS-BAY road traffic (the dataset closest to the thesis: connected points over time), neighbours' raw data helped only ~2.5% and words kept a fraction of that; the likely bottleneck is the forecaster, which has not been tested directly.
+**Where it stands (experiments 1–16, details in the README):** on Fashion-MNIST, learned words clearly beat raw pixels with few labels, self-contained set words (8 bytes) clearly beat a 49-byte thumbnail, and a new model can learn a frozen dictionary well enough to be mostly understood by others. All effects are small and on a toy dataset.
+
+**Best current evidence, not yet confirmed (don't treat as settled):** words seem to gain meaning when they must stand alone (experiment 10's set words: purity 17% → 70%, and a clear but small +1.8-point win over a thumbnail; but they failed "words are units" at 50 labels, and the win over PCA-8 was too close to call in experiment 16), and a shared language seems more stable when new speakers learn a frozen dictionary than when it's reinvented (experiment 15: agreement 47–51% → 58–69%; but "same symbols" failed its 70% bar and "understood by others" was too close to call). Library v0 builds on these as working assumptions, to be revisited if they don't hold.
+
+On PEMS-BAY road traffic (the dataset closest to the thesis: connected points over time), neighbours' raw data helped only ~2.5% and words kept a fraction of that; the likely bottleneck is the forecaster, which has not been tested directly.
 
 **Next, in this order:**
-1. **PEMS-BAY post-mortem (experiment 17):** can any reasonable forecaster (not one shared LightGBM, e.g. per-sensor models or a simple graph model) get a real gain from neighbours' raw data? This decides whether messages over time pay off, and so whether the library needs a time dimension.
+1. **PEMS-BAY post-mortem (experiment 17):** can any reasonable forecaster (not one shared LightGBM, e.g. per-sensor models or a simple graph model) get a real gain from neighbours' raw data? This decides whether messages over time pay off, and so whether the library needs a time dimension. **If it fails** (no reasonable forecaster gets a real gain from neighbours' raw data), the "many connected points" part of the vision gets revisited, not just the time column dropped: write that consequence into the experiment's bar before running, so a fail can't be absorbed quietly.
 2. **Library v0:** SQLite, end-to-end, on the best confirmed words (experiment 10's set words): dictionaries (frozen, versioned), word cards, messages (with point and time if step 1 says so), scorecards, and a simple query interface. Clunky but complete.
 3. **Reader LLM:** first an off-the-shelf LLM reading word cards (no training), scored against true labels; only then train a small adapter (GPU laptop or a free GPU notebook).
 4. **Telecom:** the same recipe on telecom data (Telecom Italia), for the link to the friend's work.
@@ -100,7 +106,6 @@ Stack: Python, pandas, scikit-learn, LightGBM, PyTorch, matplotlib; SQLite for t
 - **Version everything:** features drift and stale patterns must be detectable.
 - **Language cold-start:** LLMs know Python from billions of lines, but this language has none. Keep it small and regular so word cards fit in a prompt, and since the words are discrete they can be written as text tokens (e.g. `<w29>`), so a text LLM can be taught to read them.
 - **Measured meaning first:** a word's meaning is what its word card measures; the reader LLM explains it and never defines it.
-- **Words must stand alone, and be learned not reinvented:** meaning came from self-contained words (experiment 10), and stability from new speakers learning a frozen dictionary (experiment 15).
 - **No new encoder variant without a written gap.** Don't propose a new way of making words unless Library v0, the PEMS-BAY post-mortem or a later step reveals a specific gap the existing encoders can't fill, and write that gap down (in the README) before proposing the variant. Experiments 6–16 drifted into encoder variants while the library and the traffic question waited.
 
 ## Key references
