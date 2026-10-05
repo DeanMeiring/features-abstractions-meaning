@@ -90,6 +90,11 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 
 No new encoder variant unless one of these steps reveals a specific gap, written down first.
 
+**Success bar for experiment 17, fixed before running** (PEMS-BAY post-mortem: can any reasonable forecaster get a real gain from neighbours' raw data? Raw data only, no words. Three forecaster types, each trained without and with neighbours, everything else identical: shared LightGBM (as in experiments 12–13), one linear model per sensor (each sensor learns its own neighbour weights), and a small graph network passing information along road links, two hops, both directions. 60-minute forecast, test months; 95% confidence interval by resampling whole test days):
+- *Network pays off:* at least one forecaster type gets at least 10% lower error with neighbours than without, with the whole interval above 10%.
+- *If it fails:* the "many connected points" part of the vision gets rethought (CLAUDE.md), not just the library's time column dropped.
+- *Context, no bar:* the best forecaster's 60-minute error against the published DCRNN (2.07 mph).
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
