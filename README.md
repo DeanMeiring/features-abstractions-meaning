@@ -91,8 +91,9 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 No new encoder variant unless one of these steps reveals a specific gap, written down first.
 
 **Success bar for experiment 17, fixed before running** (PEMS-BAY post-mortem: can any reasonable forecaster get a real gain from neighbours' raw data? Raw data only, no words. Three forecaster types, each trained without and with neighbours, everything else identical: shared LightGBM (as in experiments 12–13), one linear model per sensor (each sensor learns its own neighbour weights), and a small graph network passing information along road links, two hops, both directions. 60-minute forecast, test months; 95% confidence interval by resampling whole test days):
-- *Network pays off:* at least one forecaster type gets at least 10% lower error with neighbours than without, with the whole interval above 10%.
-- *If it fails:* the "many connected points" part of the vision gets rethought (CLAUDE.md), not just the library's time column dropped.
+- *Network helps* (bar set by the developer before any results, replacing an earlier 10% draft): the same forecaster with neighbours vs without cuts the 60-minute error by at least 5%, and the whole 95% interval clears 5%.
+- *Fail means:* no reasonable forecaster finds a real neighbour gain on PEMS-BAY, so "many connected points" is revisited, not just the library's time column dropped.
+- *Too close to call:* the interval crosses 5%, which counts as not shown; no rerun with tweaks.
 - *Context, no bar:* the best forecaster's 60-minute error against the published DCRNN (2.07 mph).
 
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
