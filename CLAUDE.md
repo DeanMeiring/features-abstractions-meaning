@@ -8,6 +8,30 @@ Programming languages like Python were designed for humans, but AI now writes mo
 
 The goal is to give ML models and AI systems context over each other's features, i.e. what they have learned, not just raw data.
 
+### The big picture: compressed vectors as a new language
+
+```
+  RAW DATA (huge, messy)          THE "NEW LANGUAGE"            READERS
+  Entity A: many events   ──►    vector A  ┐                ┌─► other models
+  Entity B: ...           ──►    vector B  ├─ library of ───┤   (use as context)
+  Entity C: ...           ──►    vector C  ┘   "words"      └─► decoder LLM
+                                     │                          (unpacks vectors
+                          compose ───┘                           into meaning)
+                          (words of words)
+```
+
+1. **Compress:** an encoder squeezes raw data (a customer, a cell tower, an image) into a small learned vector. This is the middle of an autoencoder, trained by rebuilding the input or, more powerfully, by predicting what comes next.
+2. **Treat the middle as a language, not a bottleneck:** normally the compressed vector is private to the one decoder trained with it, then thrown away. Here the vectors become a shared, stable vocabulary that any model can write and read.
+3. **A growing vocabulary from a small alphabet:** like English (26 letters, unlimited words) or Chinese (characters as units of meaning that combine into words). Base symbols combine into learned "words", and words combine into higher-level words (recursive compression). The vocabulary grows large over time, but each message stays short because one word carries a lot of meaning.
+4. **A decoder LLM that reads the language:** an LLM trained specifically to unpack vectors into meaning (the same pattern as LLaVA-style models, where a small adapter feeds image vectors into an LLM). This makes the language usable by people and other AI systems.
+5. **The payoff:** when both sides share the language, only the short message needs to be stored or moved, never the raw data. The cost of meaning is paid once, when the vocabulary is built, and every later message gets cheaper. This could change how data is moved and stored.
+
+**Honest limit:** a language cannot create information. It moves the cost into the shared vocabulary, like a dictionary does. The hard problems are deciding when a new word is worth adding (MDL) and keeping word meanings stable as the vocabulary grows.
+
+**What exists vs. what is new:** the pieces exist separately (entity embeddings, VQ-VAE codebooks, BPE vocabularies, emergent agent communication, semantic communication, vector-to-LLM adapters). Combining them into one shared, growing, composable language across models, with a dedicated reader LLM, appears largely unexplored.
+
+**Example (telecom):** instead of hand-engineering features per cell tower (slow and expensive), learn one vector per tower that gives context to other towers and models; the decoder LLM can then explain what a tower's vector means.
+
 ### Core ideas
 
 - **Feature library:** features are reusable building blocks, like packages on PyPI. Each library entry has:
@@ -23,6 +47,7 @@ The goal is to give ML models and AI systems context over each other's features,
 - All models are the developer's own, so there is no cross-organisation translation problem
 - Models communicate through the central library only (no machine-to-machine yet)
 - Use public datasets only, never proprietary or employer data
+- **Parallel build with a friend:** a friend working in telecom is building a related system (learned vectors per cell tower) on their side. Started 2026-10-05, aiming for something working in about 4 months (~2027-02). The two projects **share ideas only, never data or code**; their employer's data must never enter this repo.
 
 ## The claim the PoC must prove
 
@@ -46,7 +71,7 @@ Datasets: IBM Telco Customer Churn (Kaggle, start here), Cell2Cell (Kaggle, larg
 2. **Library v0:** simple feature library (files or SQLite). Definitions start as a minimal structured spec that compiles to pandas. Do not design the full language yet.
 3. **First compression:** compress a group of related features into one learned representation (e.g. a small PyTorch autoencoder), then store it as a new library entry.
 4. **Reuse test (the actual proof):** train model B on a related but different task (e.g. upgrade or plan-change prediction). Compare raw-only vs. library features (including the compressed ones) on accuracy, data needed, and training time.
-5. **LLM layer:** give an LLM the library (definitions and metadata) plus a new task, and let it select and combine features.
+5. **LLM layer:** give an LLM the library (definitions and metadata) plus a new task, and let it select and combine features. Later: train a decoder LLM (via a small adapter) that reads the vectors directly and explains what they mean.
 
 Stack: Python, pandas/Polars, scikit-learn, LightGBM, PyTorch, SQLite.
 
@@ -73,7 +98,19 @@ Stack: Python, pandas/Polars, scikit-learn, LightGBM, PyTorch, SQLite.
 - **Relative representations / model stitching:** translating between models' vector spaces (future, machine-to-machine).
 - **TabLLM, CAAFE:** LLMs reading tabular data and LLMs generating features.
 - **MDL principle:** when an abstraction is worth keeping.
+- **Entity embeddings:** learning one vector per entity (store, listing, tower) instead of hand-engineering features.
+- **LLaVA / vision-language adapters:** a small layer that feeds non-text vectors into an LLM so it can describe them; the blueprint for the decoder LLM.
+- **Emergent communication:** AI agents inventing their own languages to talk to each other.
+- **Semantic communication (6G research):** transmitting meaning instead of raw bits.
+- **Self-supervised prediction (next-token, next-frame, JEPA):** learning representations by predicting what comes next.
 
 ## Working with the developer
 
 The developer is learning the fundamentals while building. Explain the why behind design choices, keep steps small, and favour clear, simple code over clever code.
+
+- **One step at a time:** build one feature, train and evaluate it, show the result, then move on. Don't offer menus of options or ask for permission between small steps.
+- **Short output:** report the key result (e.g. the AUC) and a line or two on what it means, not long dumps.
+
+## Data
+
+Datasets are not committed (`data/` is gitignored). Download with `python scripts/download_data.py`, which verifies the file's SHA-256 hash.
