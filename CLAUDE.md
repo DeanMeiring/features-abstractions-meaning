@@ -8,6 +8,8 @@ Programming languages like Python were designed for humans, but AI now writes mo
 
 The goal is to give ML models and AI systems context over each other's features, i.e. what they have learned, not just raw data.
 
+**What it is for (clarified after experiments 1–16):** an automatic translator from **raw data a human can't read** (sensor streams, traffic, pixels) into short, meaningful words that any model can reuse. It replaces the slow human step of turning raw data into features, not tidy tables that a person has already summarised (Telco showed there's nothing left to gain there). It is meant for many connected sources ("points", e.g. cell towers or road sensors, each connected to others). The payoff could be better accuracy, or the same accuracy at much lower cost (less data moved, faster training, fewer labels); which of these is the goal is an **open question** (see "The claim the PoC must prove"). The closest analogy is a compiler's shared intermediate language (like LLVM IR): instead of engineering features for every data-model pair, translate everything once into one shared language that every model reads. Unlike a compiler it is learned and lossy on purpose, closer to a video codec that keeps what matters.
+
 ### The big picture: compressed vectors as a new language
 
 ```
@@ -23,7 +25,7 @@ The goal is to give ML models and AI systems context over each other's features,
 1. **Compress:** an encoder squeezes raw data (a customer, a cell tower, an image) into a small learned vector. This is the middle of an autoencoder, trained by rebuilding the input or, more powerfully, by predicting what comes next.
 2. **Treat the middle as a language, not a bottleneck:** normally the compressed vector is private to the one decoder trained with it, then thrown away. Here the vectors become a shared, stable vocabulary that any model can write and read.
 3. **A growing vocabulary from a small alphabet:** like English (26 letters, unlimited words) or Chinese (characters as units of meaning that combine into words). Base symbols combine into learned "words", and words combine into higher-level words (recursive compression). The vocabulary grows large over time, but each message stays short because one word carries a lot of meaning.
-4. **A decoder LLM that reads the language:** an LLM trained specifically to unpack vectors into meaning (the same pattern as LLaVA-style models, where a small adapter feeds image vectors into an LLM). This makes the language usable by people and other AI systems.
+4. **A reader LLM that reads the language:** an LLM trained specifically to unpack the words into meaning (the same pattern as LLaVA-style models, where a small adapter feeds image vectors into an LLM). This makes the language usable by people and other AI systems. **The reader replaces a hand-written feature code language** (the original plan had definitions compiling to pandas/SQL). It must stand on measured meaning: each word has a computed **word card** (where it appears, what it draws or predicts, how stable it is), and the LLM explains the cards rather than inventing meaning.
 5. **The payoff:** when both sides share the language, only the short message needs to be stored or moved, never the raw data. The cost of meaning is paid once, when the vocabulary is built, and every later message gets cheaper. This could change how data is moved and stored.
 
 **Honest limit:** a language cannot create information. It moves the cost into the shared vocabulary, like a dictionary does. The hard problems are deciding when a new word is worth adding (MDL) and keeping word meanings stable as the vocabulary grows.
@@ -34,12 +36,15 @@ The goal is to give ML models and AI systems context over each other's features,
 
 ### Core ideas
 
-- **Feature library:** features are reusable building blocks, like packages on PyPI. Each library entry has:
-  - **Definition:** written in the feature language and executable (compiles to pandas/SQL)
-  - **Embedding:** a vector capturing what the feature means, for search and comparison
-  - **Metadata:** inputs, time window, which models used it, measured performance, version
-- **Recursive compression:** features used together over time (e.g. 10 features over a year) get compressed into a new, higher-level feature, which can itself be compressed again. Each level is a more abstract concept.
-- **Shared context:** models build on each other's learned features instead of relearning from raw data.
+- **One recipe, one dictionary per kind of data.** The recipe is the fixed method: build a dictionary from lots of raw data → check it on the scorecard → freeze and version it → onboard new speakers → use the messages. Each kind of data that shares patterns (clothing images, road traffic, tower load) gets its own dictionary; one per sensor would defeat sharing. The recipe's steps are fixed; its settings (words per message, window length) are tuned per dictionary.
+- **Feature library:** reusable building blocks, like packages on PyPI. Each library entry has:
+  - **Dictionary:** the frozen symbols (one vector each) plus the drawer that turns symbols back into data, with a version
+  - **Word cards:** computed, checkable meaning for each symbol (replaces the old executable definition)
+  - **Messages:** each item's words (and, for data over time, which point and when)
+  - **Metadata:** data type, scorecard results, which models speak it, version history
+- **Onboarding new speakers:** a new point or model doesn't reinvent the language; it learns the frozen dictionary (experiment 15), ideally with a small phrasebook of example messages.
+- **Recursive compression:** features used together over time (e.g. 10 features over a year) get compressed into a new, higher-level feature, which can itself be compressed again. Each level is a more abstract concept. (Paused: experiment 6's attempt on meaningless grid words failed.)
+- **Shared context:** models and connected points build on each other's learned words instead of relearning from raw data.
 
 ## Current scope
 
@@ -47,7 +52,7 @@ The goal is to give ML models and AI systems context over each other's features,
 - All models are the developer's own, so there is no cross-organisation translation problem
 - Models communicate through the central library only (no machine-to-machine yet)
 - Use public datasets only, never proprietary or employer data
-- **Hardware:** CPU only so far (2 CPUs, 7 GB RAM). Keep experiments small enough to run in minutes.
+- **Hardware:** a Windows laptop, CPU only (Intel Core Ultra 7 265U, 14 threads, 15.5 GB RAM), under the 30% compute limit (4 threads). Keep experiments to minutes. A second laptop with an NVIDIA RTX 3050/3060 is available later for GPU work (the reader LLM); its GPU-memory limit is still to be decided.
 - The feature library is planned but not built yet; so far model A's words are saved under `data/models/` and read directly by model B.
 - **Parallel build with a friend:** a friend working in telecom is building a related system (learned vectors per cell tower) on their side. Started 2026-10-05, aiming for something working in about 4 months (~2027-02). The two projects **share ideas only, never data or code**; their employer's data must never enter this repo.
 
@@ -55,35 +60,37 @@ The goal is to give ML models and AI systems context over each other's features,
 
 Features learned by one model, stored in the library in compact form, make a second model better or faster than starting from raw data.
 
+**Open question: better, or cheaper?** After experiment 10 the developer considered narrowing the claim to efficiency (the same accuracy as raw data at much lower cost: data moved, training time, labels), since large models already lead on accuracy. As of 2026-10-05 it's undecided ("too early to say"). It was raised after modest accuracy results, so if it's adopted later, record it as a dated change, and don't re-judge past experiments against it. So far neither an accuracy win at a scale that matters nor an efficiency win has been shown.
+
 ### Success criteria (define before building)
 
-Fix the bar in advance so results can't be rationalised afterwards. Candidate metrics for model B, library features vs. raw-only:
+Fix the bar in the README before each experiment, so results can't be rationalised afterwards. Candidate metrics for model B, words vs. raw-only:
 
-- **Accuracy:** AUC improvement over the raw-only baseline at the same data size
-- **Data efficiency:** fraction of training data needed to reach the raw-only baseline AUC
-- **Speed:** training time to reach the baseline AUC
+- **Accuracy:** improvement over the raw-only baseline at the same data size
+- **Data efficiency:** labels or data needed to reach the raw-only baseline
+- **Cost:** training time, and data stored or moved, at the same accuracy (with the one-off cost of building the dictionary reported separately)
 
-Pick concrete thresholds (e.g. "reaches baseline AUC with ≥30% less data") and record them here before running the reuse test.
+Since experiment 16, a bar only counts as passed if the **whole 95% confidence interval** clears it (`fam/scorecard.py`); otherwise it's "too close to call".
 
-## PoC plan (telecom churn)
+## Plan
 
-Datasets: IBM Telco Customer Churn (Kaggle, start here), Cell2Cell (Kaggle, larger), Orange / KDD Cup 2009.
+**Where it stands (experiments 1–16, details in the README):** on Fashion-MNIST, learned words clearly beat raw pixels with few labels, self-contained set words (8 bytes) clearly beat a 49-byte thumbnail, and a new model can learn a frozen dictionary well enough to be mostly understood by others. All effects are small and on a toy dataset. On PEMS-BAY road traffic (the dataset closest to the thesis: connected points over time), neighbours' raw data helped only ~2.5% and words kept a fraction of that; the likely bottleneck is the forecaster, which has not been tested directly.
 
-1. **Baseline:** raw data → LightGBM → record AUC. Everything else must beat this number.
-2. **Library v0:** simple feature library (files or SQLite). Definitions start as a minimal structured spec that compiles to pandas. Do not design the full language yet.
-3. **First compression:** compress a group of related features into one learned representation (e.g. a small PyTorch autoencoder), then store it as a new library entry.
-4. **Reuse test (the actual proof):** train model B on a related but different task (e.g. upgrade or plan-change prediction). Compare raw-only vs. library features (including the compressed ones) on accuracy, data needed, and training time.
-5. **LLM layer:** give an LLM the library (definitions and metadata) plus a new task, and let it select and combine features. Later: train a decoder LLM (via a small adapter) that reads the vectors directly and explains what they mean.
+**Next, in this order:**
+1. **PEMS-BAY post-mortem (experiment 17):** can any reasonable forecaster (not one shared LightGBM, e.g. per-sensor models or a simple graph model) get a real gain from neighbours' raw data? This decides whether messages over time pay off, and so whether the library needs a time dimension.
+2. **Library v0:** SQLite, end-to-end, on the best confirmed words (experiment 10's set words): dictionaries (frozen, versioned), word cards, messages (with point and time if step 1 says so), scorecards, and a simple query interface. Clunky but complete.
+3. **Reader LLM:** first an off-the-shelf LLM reading word cards (no training), scored against true labels; only then train a small adapter (GPU laptop or a free GPU notebook).
+4. **Telecom:** the same recipe on telecom data (Telecom Italia), for the link to the friend's work.
 
-Stack: Python, pandas, scikit-learn, LightGBM, PyTorch, matplotlib; SQLite for the library; Hugging Face transformers/peft later for the decoder LLM.
+Datasets in use: **Fashion-MNIST** (developing the recipe; a toy, not evidence on its own) and **PEMS-BAY** (325 connected road sensors, speed every 5 minutes, Jan–Jun 2017; the main time-and-network dataset). Telco churn was the warm-up.
 
-The plan widened beyond telecom churn: Telco showed raw features win on small, clean data, so experiments 4–5 moved to Fashion-MNIST images, where the words beat pixels with few labels. Next is recursive compression (words of words) on Fashion-MNIST, then a dataset with a real time dimension.
+Stack: Python, pandas, scikit-learn, LightGBM, PyTorch, matplotlib; SQLite for the library; Hugging Face transformers/peft later for the reader LLM.
 
 ### Known dataset limitations
 
-- **Telco is a single snapshot with no timestamps.** It cannot test the time-respecting/leakage principle or "features used together over time" compression. Treat it as a warm-up for steps 1–3.
-- **Cell2Cell and KDD Cup 2009 are also single snapshots** without real sequences, so they don't fix the time problem. Current candidate with real time series: the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
-- **Telco has only a churn label.** The reuse test needs a second, related task on the same customers. Options: derive a label from existing columns (e.g. predict `Contract` type or `InternetService` uptake, removing that column and anything directly derived from it from the inputs), or use a dataset with multiple targets (KDD Cup 2009 has churn, appetency, and up-selling on the same customers).
+- **Telco is a single snapshot of human-made columns.** Nothing left for the language to add; kept only as the warm-up (experiments 1–3).
+- **Fashion-MNIST is a toy.** Good for fast recipe development, but results there show the idea *can* work, not that it matters.
+- **PEMS-BAY is aggregated speed per sensor**, not raw events, and public results (e.g. DCRNN) exist to compare against. Cell2Cell and KDD Cup 2009 are snapshots without real sequences; Telecom Italia (traffic per grid square over ~2 months) is the telecom candidate.
 
 ## Principles
 
@@ -91,7 +98,10 @@ The plan widened beyond telecom churn: Telco showed raw features win on small, c
 - **Stopping rule for compression:** keep a new abstraction only if it improves results or makes the description shorter (MDL principle). Compression cannot create information; gains come from better abstraction and reuse.
 - **Guard against leakage:** every feature must respect time (no future information). Each compression level is a new place for leakage to sneak in.
 - **Version everything:** features drift and stale patterns must be detectable.
-- **Language cold-start:** LLMs know Python from billions of lines, but this language has none. Keep it small and regular so the spec fits in a prompt, and make it translatable to and from Python/SQL so synthetic training data can be generated later.
+- **Language cold-start:** LLMs know Python from billions of lines, but this language has none. Keep it small and regular so word cards fit in a prompt, and since the words are discrete they can be written as text tokens (e.g. `<w29>`), so a text LLM can be taught to read them.
+- **Measured meaning first:** a word's meaning is what its word card measures; the reader LLM explains it and never defines it.
+- **Words must stand alone, and be learned not reinvented:** meaning came from self-contained words (experiment 10), and stability from new speakers learning a frozen dictionary (experiment 15).
+- **No new encoder variant without a written gap.** Don't propose a new way of making words unless Library v0, the PEMS-BAY post-mortem or a later step reveals a specific gap the existing encoders can't fill, and write that gap down (in the README) before proposing the variant. Experiments 6–16 drifted into encoder variants while the library and the traffic question waited.
 
 ## Key references
 
@@ -108,6 +118,9 @@ The plan widened beyond telecom churn: Telco showed raw features win on small, c
 - **Emergent communication:** AI agents inventing their own languages to talk to each other.
 - **Semantic communication (6G research):** transmitting meaning instead of raw bits.
 - **Self-supervised prediction (next-token, next-frame, JEPA):** learning representations by predicting what comes next.
+- **DCRNN (Li et al., 2018) and graph neural networks:** forecasting connected sensors; DCRNN set the PEMS-BAY benchmark used here.
+- **Chronos, TimesFM, VQ tokenizers for time series:** foundation models that already turn time series into tokens; relatives to learn from, not to compete with on accuracy.
+- **Residual / product quantization:** building symbols from parts (the radical + detail alphabet of experiment 14).
 
 ## Working with the developer
 
@@ -120,7 +133,7 @@ The developer is learning the fundamentals while building. Explain the why behin
 
 ## Data
 
-Datasets are not committed (`data/` is gitignored). Download with `python scripts/download_data.py`, which verifies each file's SHA-256 hash. Datasets: IBM Telco churn, Fashion-MNIST. Trained models are saved under `data/models/` (also not committed; rerun the experiment to recreate).
+Datasets are not committed (`data/` is gitignored). Download with `python scripts/download_data.py`, which verifies each file's SHA-256 hash. Datasets: IBM Telco churn, Fashion-MNIST, PEMS-BAY (with the road distances between sensors). Trained models are saved under `data/models/` (also not committed; rerun the experiment to recreate).
 
 ## Progress
 

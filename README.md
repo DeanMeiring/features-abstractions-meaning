@@ -82,6 +82,16 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 
 ### Next steps
 
+**Current plan (after experiment 16; see CLAUDE.md "Plan"):** the experiments drifted into word-encoding variants while the library and the traffic question waited, so the order is now:
+1. **PEMS-BAY post-mortem (experiment 17):** can any reasonable forecaster get a real gain from neighbours' raw data? Decides whether the library needs a time dimension.
+2. **Library v0:** SQLite end-to-end on experiment 10's set words: dictionaries, word cards, messages, scorecards, queries.
+3. **Reader LLM:** an off-the-shelf LLM reading word cards first; a trained adapter only if that pays off.
+4. **Telecom:** the same recipe on telecom data.
+
+No new encoder variant unless one of these steps reveals a specific gap, written down first.
+
+The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
+
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
 
    **Success bar for experiment 6, fixed before running** (level 2: each image as a 4×4 grid = 16 words, each word summarising a 3×3 block of level-1 words; model B averaged over 20 random picks per label size):
