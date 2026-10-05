@@ -1,0 +1,140 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="fam-workflow" name="FAM workflow">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1450" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== Lanes ===== -->
+        <mxCell id="lane1" value="STAGE 1: BUILD (once, slow)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;swimlaneFillColor=#fffdf2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="1400" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2" value="STAGE 2: USE (every day, cheap)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#f7faff;" vertex="1" parent="1">
+          <mxGeometry x="20" y="310" width="1400" height="470" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend:&lt;/b&gt; solid = built and tested · dashed = not built / not proven yet" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="790" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Stage 1 steps ===== -->
+        <mxCell id="s1" value="&lt;b&gt;1. Collect raw data&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Months of readings from many towers.&lt;br&gt;Done: PEMS-BAY, 325 sensors.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;2. Train encoder + drawer&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Encoder squeezes raw data into words.&lt;br&gt;Drawer rebuilds or predicts the data from the words.&lt;br&gt;Drawer succeeds = words kept what matters.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="330" y="90" width="210" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;3. Scorecard&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Do words help model B?&lt;br&gt;Same words if retrained?&lt;br&gt;How many bytes?&lt;br&gt;Pass only if the whole 95% interval clears the bar.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="600" y="90" width="210" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;4. Freeze + version&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Lock the words so their meaning never changes.&lt;br&gt;&lt;i&gt;Versioning: not built yet.&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="870" y="90" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="dict" value="&lt;b&gt;Dictionary v1&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;256 words + drawer.&lt;br&gt;One per kind of data,&lt;br&gt;shared by all towers.&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="80" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Stage 2 steps ===== -->
+        <mxCell id="s5" value="&lt;b&gt;5. New raw data&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;T1 and T2 send their latest hour of readings.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="70" y="370" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="&lt;b&gt;6. Frozen encoder writes messages&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Raw window → 2–8 words from Dictionary v1.&lt;br&gt;Raw data can now be archived.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="330" y="370" width="210" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="group" value="Group (one road / one area)" style="ellipse;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;verticalAlign=top;spacingTop=6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="335" width="270" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="&lt;b&gt;T1&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;&amp;lt;w12&amp;gt; &amp;lt;w87&amp;gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="665" y="380" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="&lt;b&gt;T2&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;&amp;lt;w12&amp;gt; &amp;lt;w140&amp;gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="665" y="530" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s7" value="&lt;b&gt;7. Library stores&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Each message + tower ID + time.&lt;br&gt;Also: Dictionary v1, word cards, scorecards.&lt;br&gt;&lt;i&gt;Not built (Library v0, SQLite).&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="370" width="210" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s8a" value="&lt;b&gt;8a. Model B reads&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Forecasts from own + neighbours' words.&lt;br&gt;Tested; gain small so far.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="360" width="210" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s8b" value="&lt;b&gt;8b. Reader LLM explains&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Explains a word from its word card, never invents meaning.&lt;br&gt;&lt;i&gt;Not built.&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="490" width="210" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s9" value="&lt;b&gt;9. New speaker joins&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;A new tower or model learns Dictionary v1 instead of inventing its own.&lt;br&gt;Tested: exp 15 (toy data only).&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="330" y="640" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gw" value="&lt;b&gt;Group words&lt;/b&gt; (level 2)&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Words of words, e.g. &amp;lt;g3&amp;gt;.&lt;br&gt;&lt;i&gt;Paused: exp 6 failed.&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="610" y="665" width="230" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Stage 1 edges ===== -->
+        <mxCell id="e12" style="endArrow=classic;html=1;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" style="endArrow=classic;html=1;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" value="pass" style="endArrow=classic;html=1;fontSize=11;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" value="fail → change and retrain" style="endArrow=classic;html=1;dashed=1;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;entryX=0.5;entryY=0;fontSize=11;labelBackgroundColor=#fffdf2;" edge="1" parent="1" source="s3" target="s2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="705" y="55" /><mxPoint x="435" y="55" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4d" style="endArrow=classic;html=1;" edge="1" parent="1" source="s4" target="dict">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 1 to Stage 2 -->
+        <mxCell id="ed6" value="frozen words" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="dict" target="s6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1240" y="300" /><mxPoint x="435" y="300" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== Stage 2 edges ===== -->
+        <mxCell id="e56" style="endArrow=classic;html=1;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6t1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.35;entryX=0;entryY=0.5;" edge="1" parent="1" source="s6" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6t2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.75;entryX=0;entryY=0.5;" edge="1" parent="1" source="s6" target="t2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="610" y="467" /><mxPoint x="610" y="570" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="enb" value="neighbour link&lt;br&gt;&lt;i&gt;exp 17 decides&lt;/i&gt;" style="endArrow=classic;startArrow=classic;html=1;dashed=1;strokeColor=#82b366;fontSize=11;labelBackgroundColor=#f7faff;" edge="1" parent="1" source="t1" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="et17" value="messages" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;fontSize=11;labelBackgroundColor=#f7faff;" edge="1" parent="1" source="t1" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="et27" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.75;" edge="1" parent="1" source="t2" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e78a" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;dashed=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" parent="1" source="s7" target="s8a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e78b" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;dashed=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" parent="1" source="s7" target="s8b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e96" value="writes with the same dictionary" style="endArrow=classic;html=1;fontSize=11;labelBackgroundColor=#f7faff;" edge="1" parent="1" source="s9" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egw" style="endArrow=classic;html=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="group" target="gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egw7" style="endArrow=classic;html=1;dashed=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="gw" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
