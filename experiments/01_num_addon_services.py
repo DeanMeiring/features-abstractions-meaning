@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import fam.compute  # noqa: E402,F401  (first: caps CPU/GPU use at 45%)
+import fam.compute  # noqa: E402,F401  (first: caps CPU/GPU use at 30%)
 
 from fam.data import evaluate, load_telco
 

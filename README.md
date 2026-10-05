@@ -45,7 +45,7 @@ Experiment 4, originals (top, 784 bytes) vs rebuilt from 49 words (bottom, 49 by
 ## Run it
 
 ```bash
-# everything runs on CPU; fam/compute.py caps training at 45% of the machine (threads, and GPU memory if present)
+# everything runs on CPU; fam/compute.py caps training at 30% of the machine (threads, and GPU memory if present)
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt   # for CPU-only torch: pip install torch --index-url https://download.pytorch.org/whl/cpu
 python scripts/download_data.py   # data is downloaded, not committed
@@ -58,7 +58,7 @@ python experiments/05_vs_standard.py   # needs experiment 4 first
 
 ## Layout
 
-- `fam/compute.py`: caps every experiment at 45% of the machine's computing power (imported first)
+- `fam/compute.py`: caps every experiment at 30% of the machine's computing power (imported first)
 - `fam/data.py`: loading Telco and the shared evaluation (fixed splits, fixed model settings)
 - `fam/autoencoder.py`: autoencoder that compresses a customer into a few numbers
 - `fam/vqvae.py`: VQ-VAE that writes a customer as words from a learned vocabulary

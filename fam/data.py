@@ -21,7 +21,7 @@ MODEL_PARAMS = dict(
     min_child_samples=20,
     random_state=SEED,
     verbose=-1,
-    n_jobs=CPU_THREADS,  # never more than 45% of the CPU (see fam/compute.py)
+    n_jobs=CPU_THREADS,  # never more than 30% of the CPU (see fam/compute.py)
 )
 
 

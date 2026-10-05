@@ -1,4 +1,4 @@
-"""Never use more than 45% of this machine's computing power for training.
+"""Never use more than 30% of this machine's computing power for training.
 
 Import this module before numpy, torch, lightgbm or scikit-learn:
 
@@ -9,9 +9,9 @@ torch (OpenMP, MKL, OpenBLAS) read their thread count from environment
 variables once, when they are first loaded. Setting them later does nothing.
 
 What is capped, and how exactly:
-  - CPU: 45% of logical cores (rounded down, at least 1). Exact: every
+  - CPU: 30% of logical cores (rounded down, at least 1). Exact: every
     library is told to use at most CPU_THREADS threads.
-  - NVIDIA GPU memory: 45% of it, via torch. Exact for torch's own memory.
+  - NVIDIA GPU memory: 30% of it, via torch. Exact for torch's own memory.
   - GPU compute: can NOT be hard-capped from Python; a running kernel uses
     the whole GPU. Only memory can be limited.
   - RAM: not hard-capped (Windows has no simple per-process limit). Instead
@@ -20,7 +20,7 @@ What is capped, and how exactly:
 
 import os
 
-SHARE = 0.45
+SHARE = 0.30
 
 CPU_THREADS = max(1, int(os.cpu_count() * SHARE))
 
