@@ -3,3 +3,4 @@ scikit-learn
 lightgbm
 torch
 matplotlib
+psutil

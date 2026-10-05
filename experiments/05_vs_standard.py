@@ -10,6 +10,7 @@ Needs experiment 4 to have run first (it saves model A to data/models/).
 import io, sys, gzip
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import fam.compute  # noqa: E402,F401  (first: caps CPU/GPU use at 45%)
 import numpy as np, torch
 from PIL import Image
 from sklearn.decomposition import PCA

@@ -19,6 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+import fam.compute  # noqa: E402,F401  (first: caps CPU/GPU use at 45%)
 
 import matplotlib
 

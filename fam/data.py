@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from fam.compute import CPU_THREADS
+
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -19,6 +21,7 @@ MODEL_PARAMS = dict(
     min_child_samples=20,
     random_state=SEED,
     verbose=-1,
+    n_jobs=CPU_THREADS,  # never more than 45% of the CPU (see fam/compute.py)
 )
 
 

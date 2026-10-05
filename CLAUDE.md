@@ -47,6 +47,8 @@ The goal is to give ML models and AI systems context over each other's features,
 - All models are the developer's own, so there is no cross-organisation translation problem
 - Models communicate through the central library only (no machine-to-machine yet)
 - Use public datasets only, never proprietary or employer data
+- **Hardware:** CPU only so far (2 CPUs, 7 GB RAM). Keep experiments small enough to run in minutes.
+- The feature library is planned but not built yet; so far model A's words are saved under `data/models/` and read directly by model B.
 - **Parallel build with a friend:** a friend working in telecom is building a related system (learned vectors per cell tower) on their side. Started 2026-10-05, aiming for something working in about 4 months (~2027-02). The two projects **share ideas only, never data or code**; their employer's data must never enter this repo.
 
 ## The claim the PoC must prove
@@ -73,11 +75,14 @@ Datasets: IBM Telco Customer Churn (Kaggle, start here), Cell2Cell (Kaggle, larg
 4. **Reuse test (the actual proof):** train model B on a related but different task (e.g. upgrade or plan-change prediction). Compare raw-only vs. library features (including the compressed ones) on accuracy, data needed, and training time.
 5. **LLM layer:** give an LLM the library (definitions and metadata) plus a new task, and let it select and combine features. Later: train a decoder LLM (via a small adapter) that reads the vectors directly and explains what they mean.
 
-Stack: Python, pandas/Polars, scikit-learn, LightGBM, PyTorch, SQLite.
+Stack: Python, pandas, scikit-learn, LightGBM, PyTorch, matplotlib; SQLite for the library; Hugging Face transformers/peft later for the decoder LLM.
+
+The plan widened beyond telecom churn: Telco showed raw features win on small, clean data, so experiments 4–5 moved to Fashion-MNIST images, where the words beat pixels with few labels. Next is recursive compression (words of words) on Fashion-MNIST, then a dataset with a real time dimension.
 
 ### Known dataset limitations
 
-- **Telco is a single snapshot with no timestamps.** It cannot test the time-respecting/leakage principle or "features used together over time" compression. Treat it as a warm-up for steps 1–3; move to Cell2Cell or another dataset with a time dimension early.
+- **Telco is a single snapshot with no timestamps.** It cannot test the time-respecting/leakage principle or "features used together over time" compression. Treat it as a warm-up for steps 1–3.
+- **Cell2Cell and KDD Cup 2009 are also single snapshots** without real sequences, so they don't fix the time problem. Current candidate with real time series: the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 - **Telco has only a churn label.** The reuse test needs a second, related task on the same customers. Options: derive a label from existing columns (e.g. predict `Contract` type or `InternetService` uptake, removing that column and anything directly derived from it from the inputs), or use a dataset with multiple targets (KDD Cup 2009 has churn, appetency, and up-selling on the same customers).
 
 ## Principles
@@ -110,6 +115,7 @@ The developer is learning the fundamentals while building. Explain the why behin
 
 - **One step at a time:** build one feature, train and evaluate it, show the result, then move on. Don't offer menus of options or ask for permission between small steps.
 - **Short output:** report the key result (e.g. the AUC) and a line or two on what it means, not long dumps.
+- **Compute limit (45%):** training must never use more than 45% of the machine's computing power. Every experiment imports `fam.compute` first (before numpy/torch/lightgbm/sklearn), which caps CPU threads at 45% of logical cores for torch, LightGBM (`n_jobs`) and BLAS (`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`), and caps NVIDIA GPU memory at 45%. GPU compute can't be hard-capped, only its memory. RAM isn't hard-capped either, so keep batch sizes small enough to stay well under `MAX_RAM_GB`. New experiments and models must follow the same pattern (pass `n_jobs=CPU_THREADS` to anything that takes it).
 - **README as the results log:** whenever committing and pushing new work, update `README.md` with the new findings (findings table, takeaways, run instructions) in the same commit.
 
 ## Data
