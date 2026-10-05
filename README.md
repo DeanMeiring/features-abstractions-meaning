@@ -81,6 +81,10 @@ Experiment 8, half of each image hidden (top row) and each model's guess at the 
    - *Reader rescues the claim:* at 50 labels, some reader gets some words at least 5 points above the thumbnail (with the same reader).
 
    **Result: words problem.** Reader problem NO (−0.1 / −1.1 points), words problem YES (best +1.8 anywhere), snap loses it NO (+0.1), reader rescues NO (best +3.0). See experiment 9.
+
+   **Success bar for experiment 10, fixed before running** (words as self-contained units: each image becomes an unordered set of 8 words from a 256-word vocabulary, 8 bytes; each word draws its own picture layer and the layers are added, so order and position can't carry meaning. Readers: linear on the word vectors, bag of words, small neural net; same 20 picks at 50 labels):
+   - *Words are units:* at 50 labels, the bag-of-words reader scores no more than 2 points below the linear reader on the same words (in experiment 9 it lost ~35 points).
+   - *Words carry meaning:* at 50 labels, with the best reader, the 8 words reach at least the 7×7 thumbnail's accuracy (49 bytes, same reader type) and beat PCA-8 (8 bytes) by at least 2 points.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
