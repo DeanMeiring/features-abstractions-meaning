@@ -84,7 +84,7 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 
 ### Next steps
 
-**Current plan (after experiment 16; see CLAUDE.md "Plan"):** the experiments drifted into word-encoding variants while the library and the traffic question waited, so the order is now:
+**Current plan (after experiment 17; see CLAUDE.md "Plan"):** the experiments drifted into word-encoding variants while the library and the traffic question waited, so the order is now:
 1. ~~**PEMS-BAY post-mortem (experiment 17)**~~ **Done: FAIL.** Neighbours give every forecaster only ~2.5–3.5%, so "many connected points" is under review and the library stores point and time as plain labels.
 2. **Library v0 (next):** SQLite end-to-end on experiment 10's set words: dictionaries, word cards, messages, scorecards, queries.
 3. **Reader LLM:** an off-the-shelf LLM reading word cards first; a trained adapter only if that pays off.

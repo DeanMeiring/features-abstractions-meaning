@@ -11,7 +11,9 @@ variables once, when they are first loaded. Setting them later does nothing.
 What is capped, and how exactly:
   - CPU: 30% of logical cores (rounded down, at least 1). Exact: every
     library is told to use at most CPU_THREADS threads.
-  - NVIDIA GPU memory: 30% of it, via torch. Exact for torch's own memory.
+  - NVIDIA GPU memory: GPU_SHARE of it, via torch. Exact for torch's own memory.
+    A separate setting from SHARE, so GPU memory can be raised (e.g. for LLM
+    training) without also raising CPU threads and the RAM budget.
   - GPU compute: can NOT be hard-capped from Python; a running kernel uses
     the whole GPU. Only memory can be limited.
   - RAM: not hard-capped (Windows has no simple per-process limit). Instead
@@ -20,7 +22,8 @@ What is capped, and how exactly:
 
 import os
 
-SHARE = 0.30
+SHARE = 0.30      # CPU threads and the RAM budget
+GPU_SHARE = 0.30  # NVIDIA GPU memory
 
 CPU_THREADS = max(1, int(os.cpu_count() * SHARE))
 
@@ -39,4 +42,4 @@ except RuntimeError:
     pass  # already set: only allowed once per process
 
 if torch.cuda.is_available():
-    torch.cuda.set_per_process_memory_fraction(SHARE)
+    torch.cuda.set_per_process_memory_fraction(GPU_SHARE)
