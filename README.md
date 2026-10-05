@@ -26,6 +26,7 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 | 7 | Same-size test: our words vs a thumbnail and PCA at the same bytes per image (16 and 49), model B over the same 20 picks | Rebuild error: 16 B words 0.0143 vs PCA-16 0.0204 vs 4×4 thumbnail 0.0546 · 49 B words 0.0049 vs PCA-49 0.0121 vs 7×7 thumbnail 0.0330 · 50 labels: 16 B words 59.5% vs PCA-16 58.4% · 49 B words 61.3% vs 7×7 thumbnail 59.7% | **Failed the bar fixed in advance** (+5 points; got +1.1 / +1.7). Compression is real: words keep far more picture than standard methods at the same size. But for learning from few labels, a plain blurry 7×7 thumbnail already beats full pixels (59.7% vs 57.4%), so most of the words' gain over pixels comes from fewer, smoother numbers, not meaning. Also shows PCA-49 is a weak few-label baseline, so experiment 5's 9–11 point win over PCA overstates the words' advantage. |
 | 8 | Predict instead of copy: words trained to rebuild the whole image while a random half is hidden (wide view: every word sees the whole image), vs a control with the same wide view trained to copy | Hidden-half rebuild error: predict 0.019 vs control 0.107 vs copy 0.105 · 50 labels: thumbnail 59.7% · copy 61.3% · control 61.7% · predict 60.7% | **Failed the bar fixed in advance** (main: +1.0 vs thumbnail, bar +5; cause: −1.0 vs control, bar +2). The predict model clearly learned what clothes look like (it redraws a hidden boot or trouser leg from the other half), but that knowledge didn't make its words easier for model B to learn classes from. |
 | 9 | Reader grid: 4 readers (linear, bag of words, k-NN, small neural net) × thumbnail / copy / control / predict words / predict numbers before the snap × 50, 1,000 and all 60,000 labels | Predict vs control words: −0.1 points with all labels (linear), −1.1 at 50 labels (best reader); never ≥ +2 anywhere · before vs after snap: +0.1 · 60,000 labels, linear: words 86.7% vs thumbnail 81.0% · 50 labels, best: words +3.0 over thumbnail (MLP) · bag of words: 23–26% at 50 labels | **Words problem, by the bar fixed in advance:** experiment 8's hidden-half knowledge isn't in the words in a form any reader can use, and snapping to words loses nothing. But with many labels all our words clearly beat the thumbnail (+5.7 points), so they do hold more than a blur; with 50 labels the labels themselves are the bottleneck. Bag of words fails: these words only mean something at their grid position. |
+| 10 | Self-contained words: each image becomes an unordered set of **8 words** (8 bytes); each word draws its own picture layer and the layers are added, so order and position can't carry meaning | **Word purity 70%** (grid words: 17%) · 50 labels: set words 61.3% (8 B) vs thumbnail 59.3% (49 B) vs PCA-8 58.9% (8 B) · bag of words 39.0% at 50 labels, but 71.2% vs 72.6% at 1,000 and 78.4% vs 77.9% at 60,000 · rebuild error 0.021 | **Passed 'words carry meaning', failed 'words are units' (bar fixed in advance).** First words that point to a class on their own (a single word drawn alone looks like a trouser or T-shirt), and 8 bytes beat a 49-byte thumbnail with 50 labels. Counting the words works with 1,000+ labels but not with 50, likely because 256 counts are too many features for 50 examples (untested). Ceiling is lower: 8 bytes can't hold everything (78–79% vs thumbnail 81–87% with all labels). |
 
 All Telco AUCs are averaged over repeated cross-validation splits (15 for experiment 1, 10 for 2–3), so one lucky test split can't decide a result. In experiments 2–3, model B predicts a different task (long contract vs month-to-month) with the `Contract` column hidden from both models. Image accuracies are averaged over 5 random picks of labelled images per size, tested on the 10,000 test images.
 
@@ -41,6 +42,10 @@ Experiment 8, half of each image hidden (top row) and each model's guess at the 
 
 ![Hidden-half guesses by copy, control and predict words](results/08_predict_words.png)
 
+Experiment 10, originals (top), rebuilt from 8 self-contained words (middle), and the 10 most used words each drawn alone, with the class they mostly appear in (bottom):
+
+![Set words: rebuilds and single words](results/10_set_words.png)
+
 ### What we've learned
 
 - **On small, clean data, raw features win.** Telco is small and clean; LightGBM finds the patterns itself, even from 50 labels. The learned language matters more where raw data is big, messy, or hard to read directly (images helped; Telco didn't).
@@ -51,6 +56,7 @@ Experiment 8, half of each image hidden (top row) and each model's guess at the 
 - **Words trained to rebuild are good compressors, not yet meaningful.** At the same size they keep 1.4–2.5x more of the picture than PCA, but a simple thumbnail gets most of their few-label gain. Experiments 2, 6 and 7 all point the same way: to carry meaning, words probably need a different job, such as predicting a hidden part or what comes next, rather than rebuilding the input.
 - **Knowing isn't the same as being easy to read.** In experiment 8 the predict model learned real knowledge about clothing shapes, yet model B (a simple linear reader with 50 labels) did no better with its words. The knowledge may sit in the decoder, or in a form a linear reader can't use. Open question: is the problem the words, or the reader?
 - **It was the words, not the reader (experiment 9).** No reader (linear, k-NN, neural net) and no amount of labels made the predict words beat the control. The extra knowledge from predicting stays in the model, not in its 49 words. Two more lessons: with all 60,000 labels the words beat a thumbnail by 5.7 points, so they do carry more than a blur, but 50 labels are too few for any reader to use it; and our words are not yet like a language's words, since counting them without their positions loses most of the meaning.
+- **Forcing words to stand alone gave them meaning (experiment 10).** When words can't lean on position (an unordered set whose picture layers are added), each word learns a whole-garment concept: word purity jumped from 17% to 70%, and 8 such words beat a 49-byte thumbnail with 50 labels. It's the first step from pixel codes toward a vocabulary. Trade-off: 8 bytes keep less detail, so the ceiling with many labels is lower.
 
 ### Next steps
 
@@ -85,6 +91,8 @@ Experiment 8, half of each image hidden (top row) and each model's guess at the 
    **Success bar for experiment 10, fixed before running** (words as self-contained units: each image becomes an unordered set of 8 words from a 256-word vocabulary, 8 bytes; each word draws its own picture layer and the layers are added, so order and position can't carry meaning. Readers: linear on the word vectors, bag of words, small neural net; same 20 picks at 50 labels):
    - *Words are units:* at 50 labels, the bag-of-words reader scores no more than 2 points below the linear reader on the same words (in experiment 9 it lost ~35 points).
    - *Words carry meaning:* at 50 labels, with the best reader, the 8 words reach at least the 7×7 thumbnail's accuracy (49 bytes, same reader type) and beat PCA-8 (8 bytes) by at least 2 points.
+
+   **Result: words carry meaning PASS** (61.3% vs thumbnail 59.3%, +2.4 over PCA-8); **words are units FAIL** (bag of words −22.2 points at 50 labels, though only −1.4 at 1,000 and +0.5 at 60,000). See experiment 10.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
@@ -104,6 +112,7 @@ python experiments/06_words_of_words.py # needs experiment 4 first; ~6 min at 4 
 python experiments/07_same_size.py      # needs experiments 4 and 6; ~30 s
 python experiments/08_predict_words.py  # needs experiment 4; ~13 min at 4 threads (trains 2 models)
 python experiments/09_reader_grid.py     # needs experiment 8; ~15 min at 4 threads
+python experiments/10_set_words.py       # needs experiment 4; ~9 min at 4 threads
 ```
 
 ## Layout
@@ -114,6 +123,7 @@ python experiments/09_reader_grid.py     # needs experiment 8; ~15 min at 4 thre
 - `fam/vqvae.py`: VQ-VAE that writes a customer as words from a learned vocabulary
 - `fam/images.py`: loading Fashion-MNIST
 - `fam/image_vqvae.py`: image VQ-VAE that writes a picture as a 7×7 grid of words
+- `fam/set_vqvae.py`: set VQ-VAE that writes an image as an unordered set of 8 self-contained words
 - `fam/word_vqvae.py`: level-2 VQ-VAE that writes a 7×7 grid of level-1 words as a 4×4 grid of level-2 words
 - `experiments/`: one script per experiment, numbered in order
 - `results/`: saved pictures from experiments
