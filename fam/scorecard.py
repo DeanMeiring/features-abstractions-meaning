@@ -59,6 +59,16 @@ def stability_by_chance(words_a: np.ndarray, words_b: np.ndarray, vocab: int = 2
     return stability(words_a, shuffled, vocab)
 
 
+def same_symbols(words_a: np.ndarray, words_b: np.ndarray, vocab: int = 256) -> float:
+    """Two speakers of the SAME dictionary: share of symbols they both wrote for the same item.
+
+    Symbols are a set (order doesn't matter), so this counts the overlap of the
+    two sets, as a share of the symbols per item. 100% = identical messages.
+    """
+    overlap = np.minimum(bag_of_words(words_a, vocab), bag_of_words(words_b, vocab)).sum(axis=1)
+    return float((overlap / words_a.shape[1]).mean())
+
+
 def bag_of_words(words: np.ndarray, vocab: int = 256) -> np.ndarray:
     """How often each symbol appears in the item, wherever it is."""
     counts = np.zeros((len(words), vocab), dtype=np.float32)

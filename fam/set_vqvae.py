@@ -95,12 +95,28 @@ class SetVQVAE(nn.Module):
 
 
 def train(images: np.ndarray, epochs: int = 6, batch_size: int = 128, seed: int = 42,
-          alphabet: bool = False) -> SetVQVAE:
-    """Learn the vocabulary from images alone (no labels)."""
+          alphabet: bool = False, dictionary: SetVQVAE | None = None) -> SetVQVAE:
+    """Learn the vocabulary from images alone (no labels).
+
+    dictionary (experiment 15): instead of inventing a language, a NEW SPEAKER
+    learns an existing one. The given model's symbols and drawer are copied and
+    frozen; only a fresh encoder learns, and only from being understood (the
+    frozen drawer must rebuild the image from its symbols).
+    """
     torch.manual_seed(seed)
     x_all = to_tensor(images)
-    model = SetVQVAE(alphabet=alphabet)
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
+    if dictionary is None:
+        model = SetVQVAE(alphabet=alphabet)
+        learning = list(model.parameters())
+    else:
+        alphabet = dictionary.alphabet
+        model = SetVQVAE(alphabet=alphabet)  # fresh, randomly started encoder
+        frozen = {k: v for k, v in dictionary.state_dict().items() if not k.startswith("encoder.")}
+        model.load_state_dict(frozen, strict=False)
+        for name, parameter in model.named_parameters():
+            parameter.requires_grad = name.startswith("encoder.")
+        learning = list(model.encoder.parameters())
+    optimizer = torch.optim.Adam(learning, lr=2e-3)
 
     for epoch in range(epochs):
         order = torch.randperm(len(x_all))
@@ -125,7 +141,7 @@ def train(images: np.ndarray, epochs: int = 6, batch_size: int = 128, seed: int 
             optimizer.step()
             total += rebuild_loss.item() * len(x)
 
-        if epoch < epochs - 1:
+        if epoch < epochs - 1 and dictionary is None:  # a frozen dictionary never changes
             revive(model, x_all, used)
         radicals = f", radicals used {int(used.view(16, 16).any(dim=1).sum())}/16" if alphabet else ""
         print(f"  epoch {epoch + 1}/{epochs}: rebuild error {total / len(x_all):.4f}, "
