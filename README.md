@@ -51,6 +51,10 @@ Experiment 6, originals (top) vs rebuilt from 49 level-1 words (middle) vs from 
    - *Higher-level words help more:* at 50 labels, level-2 words beat level-1 words by at least 2 points.
 
    **Result: both failed** (−1.8 points at 50 labels, −2.7 at 100). See experiment 6.
+
+   **Success bar for experiment 7, fixed before running** (same-size comparison: is the 29x compression real, or would any 16-byte summary do?): every input stored at 1 byte per number; model B over the same 20 picks as experiment 6.
+   - *Level 2 (16 bytes):* at 50 labels, level-2 words beat both a 4×4 thumbnail and PCA-16 by at least 5 points.
+   - *Level 1 (49 bytes):* at 50 labels, level-1 words beat both a 7×7 thumbnail and PCA-49 by at least 5 points.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
