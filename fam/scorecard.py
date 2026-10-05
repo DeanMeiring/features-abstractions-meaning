@@ -51,6 +51,18 @@ def stability(words_a: np.ndarray, words_b: np.ndarray, vocab: int = 256) -> flo
     return (one_way(words_a, words_b) + one_way(words_b, words_a)) / 2
 
 
+def symbol_stability(words_a: np.ndarray, words_b: np.ndarray, vocab: int = 256) -> np.ndarray:
+    """stability(), one number per symbol of training A (for its word card).
+
+    For each symbol: how often its best-matching training-B symbol is present
+    on the items the symbol is on. NaN for symbols training A never used.
+    """
+    pa, pb = presence(words_a, vocab), presence(words_b, vocab)
+    together = pa.T.astype(np.float32) @ pb.astype(np.float32)  # (vocab A, vocab B) items shared
+    uses = pa.sum(axis=0)
+    return np.divide(together.max(axis=1), uses, out=np.full(vocab, np.nan), where=uses > 0)
+
+
 def stability_by_chance(words_a: np.ndarray, words_b: np.ndarray, vocab: int = 256, seed: int = 0) -> float:
     """Stability if training B's items were shuffled, i.e. no real match: the floor to compare against.
 
