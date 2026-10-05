@@ -211,4 +211,4 @@ python experiments/17_traffic_postmortem.py # ~15 min at 4 threads
 - `scripts/download_data.py`: downloads and verifies the datasets
 - `scripts/monitor_cpu.py`: runs an experiment and reports its CPU use as % of the machine and its peak RAM, to check the compute limit
 - `HANDOFF.md`: setup steps for a new machine, and the decisions and open questions from the 2026-10-05 session
-- `fam_workflow.drawio`: a workflow diagram (draw.io)
+- `fam_workflow.drawio.svg`: a workflow diagram (draw.io, viewable as an image)
