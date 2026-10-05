@@ -131,6 +131,11 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
    - *Usable shared language:* the better recipe's stability is at least 70%.
 
    **Result: fair swap PASS, radicals carry it PASS, more stable FAIL (−4 points), usable language FAIL (51%).** See experiment 14.
+
+   **Success bar for experiment 15, fixed before running** (can a new model learn the existing language? Freeze experiment 14's dictionary (alphabet, seed 42: the symbols and the drawer that rebuilds images from them) and train a brand-new encoder, the "new speaker", from a fresh random start, only to be understood by the frozen drawer. It never sees what the original speaker wrote. Flat words get the same treatment for comparison. Bars apply to the alphabet, on the test images, 50 labels, 20 picks):
+   - *Same symbols:* the new speaker writes exactly the same symbol as the original on at least 70% of symbols.
+   - *Understood by others:* a model B trained on the original speaker's messages loses at most 2 points reading the new speaker's messages.
+   - *Quality kept:* the new speaker's own accuracy is within 1 point of the original's.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
