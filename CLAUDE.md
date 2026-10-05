@@ -114,4 +114,8 @@ The developer is learning the fundamentals while building. Explain the why behin
 
 ## Data
 
-Datasets are not committed (`data/` is gitignored). Download with `python scripts/download_data.py`, which verifies the file's SHA-256 hash.
+Datasets are not committed (`data/` is gitignored). Download with `python scripts/download_data.py`, which verifies each file's SHA-256 hash. Datasets: IBM Telco churn, Fashion-MNIST. Trained models are saved under `data/models/` (also not committed; rerun the experiment to recreate).
+
+## Progress
+
+Experiment results, takeaways and the next planned step live in the README's "Findings so far" section; read it at the start of a session to see where the project stands.
