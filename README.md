@@ -136,6 +136,7 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
    - *Same symbols:* the new speaker writes exactly the same symbol as the original on at least 70% of symbols.
    - *Understood by others:* a model B trained on the original speaker's messages loses at most 2 points reading the new speaker's messages.
    - *Quality kept:* the new speaker's own accuracy is within 1 point of the original's.
+   - *Clarified before the real run:* model B reads each message with its symbols sorted by number, because the language is an unordered set and slot order carries no meaning by design; a reader that depends on slot order would penalise identical messages written in a different order. The slot-order reader is reported too.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
