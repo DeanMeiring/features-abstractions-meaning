@@ -1,0 +1,8 @@
+# Datasets are downloaded, not committed. Run: python scripts/download_data.py
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
