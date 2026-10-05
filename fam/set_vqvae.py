@@ -9,6 +9,12 @@ the picture layers are added together, and adding doesn't care about order,
 so neither slot number nor position can carry meaning. Each word has to say
 everything about its own part of the image (what, and where), like
 "boot sole" or "dark top half". An image is 8 words = 8 bytes.
+
+alphabet=True (experiment 14) builds each symbol from two parts, like a
+Chinese character from a radical and another component: each slot snaps to
+the nearest of 16 RADICALS, and whatever the radical doesn't explain snaps to
+the nearest of 16 DETAILS. Symbol = radical + detail: still 16 x 16 = 256
+symbols, 1 byte each, but symbols sharing a radical are related.
 """
 
 import numpy as np
@@ -20,9 +26,9 @@ from fam.image_vqvae import to_tensor
 
 
 class SetVQVAE(nn.Module):
-    def __init__(self, n_words: int = 8, slot_size: int = 16, vocab_size: int = 256):
+    def __init__(self, n_words: int = 8, slot_size: int = 16, vocab_size: int = 256, alphabet: bool = False):
         super().__init__()
-        self.n_words, self.slot_size = n_words, slot_size
+        self.n_words, self.slot_size, self.alphabet = n_words, slot_size, alphabet
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=4, stride=2, padding=1),   # 28x28 -> 14x14
             nn.ReLU(),
@@ -40,15 +46,39 @@ class SetVQVAE(nn.Module):
             nn.ReLU(),
             nn.ConvTranspose2d(16, 1, kernel_size=4, stride=2, padding=1),   # 14x14 -> 28x28
         )
-        self.codebook = nn.Parameter(torch.randn(vocab_size, slot_size) * 0.1)
+        if alphabet:
+            side = int(vocab_size ** 0.5)  # 16 radicals x 16 details = 256 symbols
+            self.radicals = nn.Parameter(torch.randn(side, slot_size) * 0.1)
+            self.details = nn.Parameter(torch.randn(side, slot_size) * 0.02)
+        else:
+            self.codebook = nn.Parameter(torch.randn(vocab_size, slot_size) * 0.1)
+
+    def vectors(self):
+        """The dictionary: one vector per symbol, (256, slot_size)."""
+        if not self.alphabet:
+            return self.codebook
+        return (self.radicals[:, None] + self.details[None, :]).reshape(-1, self.slot_size)
+
+    def quantize(self, slots):
+        """Snap slots to symbols: (symbol numbers, their vectors). See the module docstring."""
+        flat = slots.reshape(-1, self.slot_size)
+        if not self.alphabet:
+            ids = torch.cdist(flat, self.codebook).argmin(dim=1)
+            snapped = self.codebook[ids]
+        else:
+            radical = torch.cdist(flat, self.radicals).argmin(dim=1)
+            leftover = flat - self.radicals[radical]
+            detail = torch.cdist(leftover, self.details).argmin(dim=1)
+            ids = radical * len(self.details) + detail
+            snapped = self.radicals[radical] + self.details[detail]
+        return ids.view(slots.shape[:-1]), snapped.view(slots.shape)
 
     def slots(self, x):
         """(n, 1, 28, 28) images -> (n, 8, slot_size) slot vectors."""
         return self.encoder(x).view(len(x), self.n_words, self.slot_size)
 
     def nearest_words(self, slots):
-        flat = slots.reshape(-1, self.slot_size)
-        return torch.cdist(flat, self.codebook).argmin(dim=1).view(slots.shape[:-1])
+        return self.quantize(slots)[0]
 
     def layers(self, vectors):
         """(n, 8, slot_size) word vectors -> (n, 8, 28, 28) one picture layer per word."""
@@ -61,25 +91,25 @@ class SetVQVAE(nn.Module):
 
     def decode_words(self, words):
         """(n, 8) word numbers -> (n, 1, 28, 28) rebuilt images."""
-        return self.draw(self.codebook[words])
+        return self.draw(self.vectors()[words])
 
 
-def train(images: np.ndarray, epochs: int = 6, batch_size: int = 128, seed: int = 42) -> SetVQVAE:
+def train(images: np.ndarray, epochs: int = 6, batch_size: int = 128, seed: int = 42,
+          alphabet: bool = False) -> SetVQVAE:
     """Learn the vocabulary from images alone (no labels)."""
     torch.manual_seed(seed)
     x_all = to_tensor(images)
-    model = SetVQVAE()
+    model = SetVQVAE(alphabet=alphabet)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
 
     for epoch in range(epochs):
         order = torch.randperm(len(x_all))
-        used = torch.zeros(len(model.codebook), dtype=torch.bool)
+        used = torch.zeros(256, dtype=torch.bool)
         total = 0.0
         for start in range(0, len(x_all), batch_size):
             x = x_all[order[start:start + batch_size]]
             slots = model.slots(x)
-            words = model.nearest_words(slots)
-            snapped = model.codebook[words]
+            words, snapped = model.quantize(slots)
             used[words.flatten()] = True
 
             # Same three losses as the grid VQ-VAE (see fam/vqvae.py).
@@ -95,15 +125,33 @@ def train(images: np.ndarray, epochs: int = 6, batch_size: int = 128, seed: int 
             optimizer.step()
             total += rebuild_loss.item() * len(x)
 
-        # Revive words nobody used this epoch by moving them onto real slots.
-        dead = (~used).nonzero().flatten()
-        if len(dead) and epoch < epochs - 1:
-            with torch.no_grad():
-                sample = model.slots(x_all[torch.randint(len(x_all), (len(dead),))])
-                model.codebook[dead] = sample[torch.arange(len(dead)), torch.randint(model.n_words, (len(dead),))]
+        if epoch < epochs - 1:
+            revive(model, x_all, used)
+        radicals = f", radicals used {int(used.view(16, 16).any(dim=1).sum())}/16" if alphabet else ""
         print(f"  epoch {epoch + 1}/{epochs}: rebuild error {total / len(x_all):.4f}, "
-              f"words used {int(used.sum())}/{len(model.codebook)}")
+              f"symbols used {int(used.sum())}/256{radicals}")
     return model
+
+
+@torch.no_grad()
+def revive(model: SetVQVAE, x_all: torch.Tensor, used: torch.Tensor) -> None:
+    """Move symbols (or radicals / details) nobody used this epoch onto real slots."""
+    if not model.alphabet:
+        dead = (~used).nonzero().flatten()
+        if len(dead):
+            sample = model.slots(x_all[torch.randint(len(x_all), (len(dead),))])
+            model.codebook[dead] = sample[torch.arange(len(dead)), torch.randint(model.n_words, (len(dead),))]
+        return
+    grid = used.view(16, 16)
+    dead_radicals = (~grid.any(dim=1)).nonzero().flatten()
+    dead_details = (~grid.any(dim=0)).nonzero().flatten()
+    if len(dead_radicals) + len(dead_details) == 0:
+        return
+    sample = model.slots(x_all[torch.randint(len(x_all), (32,))])
+    sample = sample[torch.arange(32), torch.randint(model.n_words, (32,))]  # one random slot per image
+    model.radicals[dead_radicals] = sample[:len(dead_radicals)]
+    leftover = sample - model.radicals[torch.cdist(sample, model.radicals).argmin(dim=1)]
+    model.details[dead_details] = leftover[16:16 + len(dead_details)]
 
 
 @torch.no_grad()

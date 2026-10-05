@@ -30,6 +30,7 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 | 11 | Raw-data baseline on PEMS-BAY (the standard benchmark: from a sensor's last hour, predict its speed 15 / 30 / 60 min ahead; train on the first 70% of time, test on the last 20%) | Average error (mph): last value 1.60 / 2.18 / 3.04 · LightGBM on raw readings 1.46 / 1.95 / 2.54 · LightGBM trains in ~12 s per horizon on 3M rows · raw data 68 MB (23 MB zipped) · published DCRNN: 1.38 / 1.74 / 2.07 | The bar every traffic experiment must match. Setup checks out: LightGBM lands between 'last value' and the published graph model. A plain model on raw data is already close to DCRNN at 15 min; the gap grows at 60 min, where knowing about neighbouring roads should matter most. |
 | 12 | Neighbours' words on PEMS-BAY: each sensor's last hour becomes 2 self-contained words (trained on the training months to describe that hour and predict the next). Same LightGBM: A = own hour; B = + 5 nearest neighbours' raw hours (60 bytes); C = + their words (10 bytes) | Error at 15 / 30 / 60 min (mph): A 1.46 / 1.96 / 2.54 · B 1.45 / 1.93 / 2.48 · C 1.47 / 1.96 / 2.53 · training at 60 min: A 21 s, B 63 s, C 32 s | **Network helps: FAIL** (best cut 2.4%, bar 3%). **Words keep it: PASS on paper, but hollow:** C is within 2% of B only because B barely helps; the words kept about 1/6 of the raw neighbours' small gain (2.53 vs 2.48, A 2.54). Lesson: the bar should have asked words to keep most of the network's gain, not just stay close. All three forecasts still see a jam about an hour late. |
 | 13 | Directional neighbours: the 5 nearest sensors **ahead** (downstream) or **behind** (upstream) along the road, instead of any direction; same LightGBM and same hour words as experiment 12 | 60-min error (mph): A 2.54 · raw ahead 2.48 · raw behind 2.48 · words ahead 2.54 · words behind 2.54 · DCRNN 2.07 | **Both failed** (direction: 2.6% cut, bar 3%; words kept 14% of the gain, bar 50%). Direction made no difference: any-direction, ahead and behind neighbours all give the same ~2.5%. So neighbour choice isn't the bottleneck. Two real limits: one shared LightGBM on 5 neighbours' last hour can only use a little of the network, and 2 words per hour are too coarse to carry what little it uses. |
+| 14 | Word scorecard on Fashion-MNIST: flat words (experiment 10) vs a learned **Chinese-style alphabet** (each symbol = 1 of 16 radicals + 1 of 16 details, still 1 byte), each trained twice with different seeds | 50 labels: flat 60.0% · alphabet 59.2% · **radicals alone 54.7% (92% of the alphabet, with half the information)** · bag of words at 50: alphabet 47% vs flat 34% · stability between seeds: flat 51% (chance 4%) · alphabet 47% (chance 10%) · **radicals alone 72% (chance 31%)** | **Fair swap PASS, radicals carry it PASS; more stable FAIL, usable language FAIL** (best stability 51%, bar 70%). The 16 radicals look like real concepts (trouser legs, ankle boot, bag with handle, sneaker sole) and carry most of the meaning. But retraining gives back only about half the same symbols, so the language isn't stable yet: the coarse radicals are fairly stable, the fine details are not. |
 
 All Telco AUCs are averaged over repeated cross-validation splits (15 for experiment 1, 10 for 2–3), so one lucky test split can't decide a result. In experiments 2–3, model B predicts a different task (long contract vs month-to-month) with the `Contract` column hidden from both models. Image accuracies are averaged over 5 random picks of labelled images per size, tested on the 10,000 test images.
 
@@ -57,6 +58,10 @@ Experiment 13, the same jam with neighbours chosen along the direction of traffi
 
 ![PEMS-BAY directional forecasts](results/13_directional_forecasts.png)
 
+Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with the class it appears in most:
+
+![The 16 learned radicals](results/14_radicals.png)
+
 ### What we've learned
 
 - **On small, clean data, raw features win.** Telco is small and clean; LightGBM finds the patterns itself, even from 50 labels. The learned language matters more where raw data is big, messy, or hard to read directly (images helped; Telco didn't).
@@ -69,6 +74,7 @@ Experiment 13, the same jam with neighbours chosen along the direction of traffi
 - **It was the words, not the reader (experiment 9).** No reader (linear, k-NN, neural net) and no amount of labels made the predict words beat the control. The extra knowledge from predicting stays in the model, not in its 49 words. Two more lessons: with all 60,000 labels the words beat a thumbnail by 5.7 points, so they do carry more than a blur, but 50 labels are too few for any reader to use it; and our words are not yet like a language's words, since counting them without their positions loses most of the meaning.
 - **Forcing words to stand alone gave them meaning (experiment 10).** When words can't lean on position (an unordered set whose picture layers are added), each word learns a whole-garment concept: word purity jumped from 17% to 70%, and 8 such words beat a 49-byte thumbnail with 50 labels. It's the first step from pixel codes toward a vocabulary. Trade-off: 8 bytes keep less detail, so the ceiling with many labels is lower.
 - **Simply adding neighbours isn't enough (experiment 12).** Giving a sensor its 5 nearest neighbours' last hour cut the 60-minute error by only 2.4% (raw) or 0.4% (words), far from the published graph model DCRNN. Likely reasons: the neighbours are picked by distance, not by direction of traffic (upstream jams are what arrive next), and one shared LightGBM can't learn which neighbour matters for which sensor. The network idea needs the connections to carry direction and learned weight, which is what graph models do. Experiment 13 tested the direction idea and it made no difference (ahead, behind and any direction all gave ~2.5%), so the limit is the forecaster and the words, not which neighbours are chosen. The forecaster can only use a little of the network (raw neighbours: 2.5% better), and the words keep only a seventh of that. Words can only keep a gain the forecaster can find.
+- **A learned alphabet works, but the language isn't stable yet (experiment 14).** Building symbols from 16 radicals + 16 details costs almost nothing in accuracy, and the radicals alone carry 92% of the meaning, so the model discovers a small alphabet of real concepts (trouser legs, boot, bag, sole) on its own. But two trainings agree on only about half their symbols (far above chance, far below what a shared language needs). The coarse radicals are the stable part (72%); the fine details aren't. Stability is now the main open problem for the words.
 
 ### Next steps
 
@@ -123,6 +129,8 @@ Experiment 13, the same jam with neighbours chosen along the direction of traffi
    - *More stable:* the alphabet's stability beats flat words by at least 10 points.
    - *Radicals carry the meaning:* radicals alone reach at least 90% of the full alphabet's accuracy.
    - *Usable shared language:* the better recipe's stability is at least 70%.
+
+   **Result: fair swap PASS, radicals carry it PASS, more stable FAIL (−4 points), usable language FAIL (51%).** See experiment 14.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
@@ -146,6 +154,7 @@ python experiments/10_set_words.py       # needs experiment 4; ~9 min at 4 threa
 python experiments/11_traffic_baseline.py # ~1.5 min
 python experiments/12_neighbour_words.py # ~7 min at 4 threads
 python experiments/13_directional_neighbours.py # needs experiment 12; ~13 min at 4 threads
+python experiments/14_alphabet_scorecard.py # needs experiment 10; ~16 min at 4 threads
 ```
 
 ## Layout
@@ -158,7 +167,8 @@ python experiments/13_directional_neighbours.py # needs experiment 12; ~13 min a
 - `fam/traffic.py`: loading PEMS-BAY road traffic, the sensor road links, and the standard forecasting split
 - `fam/images.py`: loading Fashion-MNIST
 - `fam/image_vqvae.py`: image VQ-VAE that writes a picture as a 7×7 grid of words
-- `fam/set_vqvae.py`: set VQ-VAE that writes an image as an unordered set of 8 self-contained words
+- `fam/set_vqvae.py`: set VQ-VAE that writes an image as an unordered set of 8 self-contained words (optionally a Chinese-style alphabet: radical + detail)
+- `fam/scorecard.py`: the word scorecard (purity, few-label accuracy, bag of words, stability between trainings)
 - `fam/word_vqvae.py`: level-2 VQ-VAE that writes a 7×7 grid of level-1 words as a 4×4 grid of level-2 words
 - `experiments/`: one script per experiment, numbered in order
 - `results/`: saved pictures from experiments
