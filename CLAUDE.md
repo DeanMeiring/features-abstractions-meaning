@@ -56,8 +56,8 @@ The goal is to give ML models and AI systems context over each other's features,
 - All models are the developer's own, so there is no cross-organisation translation problem
 - Models communicate through the central library only (no machine-to-machine yet)
 - Use public datasets only, never proprietary or employer data
-- **Hardware:** a Windows laptop, CPU only (Intel Core Ultra 7 265U, 14 threads, 15.5 GB RAM), under the 30% compute limit (4 threads). Keep experiments to minutes. A second laptop with an NVIDIA RTX 3050/3060 is available later for GPU work (the reader LLM); its GPU-memory limit is still to be decided.
-- The feature library is planned but not built yet; so far model A's words are saved under `data/models/` and read directly by model B.
+- **Hardware:** a Windows laptop, CPU only (Intel Core Ultra 7 265U, 14 threads, 15.5 GB RAM), under the 30% compute limit (4 threads). Keep experiments to minutes. A second laptop, set up on 2026-10-05 (Intel i5-11320H, 8 threads, 11.8 GB RAM, NVIDIA RTX 3050 with 4 GB), runs the same experiments under the same limit: 2 threads and a 3.5 GB RAM budget, which experiments 10, 14 and 15 exceed (about 4.1 GB peak; accepted by the developer for these scripts). Its GPU-memory limit stays at 30% (1.2 GB) for now, the developer's choice on 2026-10-05; that is too small to train an LLM, so it must be revisited before the reader LLM's adapter step.
+- The feature library exists as v0 (`fam/library.py`, built by experiment 18 into `data/library_v0.db`) for the Fashion-MNIST set words only; the other experiments still read model A's words directly from `data/models/`.
 - **Parallel build with a friend:** a friend working in telecom is building a related system (learned vectors per cell tower) on their side. Started 2026-10-05, aiming for something working in about 4 months (~2027-02). The two projects **share ideas only, never data or code**; their employer's data must never enter this repo.
 
 ## The claim the PoC must prove
@@ -70,7 +70,7 @@ Features learned by one model, stored in the library in compact form, make a sec
 
 ### Success criteria (define before building)
 
-Fix the bar in the README before each experiment, so results can't be rationalised afterwards. Candidate metrics for model B, words vs. raw-only:
+Fix the bar in the README before each experiment, so results can't be rationalised afterwards. Commit the bar on its own before running, so git shows the order (experiment 18's bar and result went into one commit, so its timing can't be shown). Candidate metrics for model B, words vs. raw-only:
 
 - **Accuracy:** improvement over the raw-only baseline at the same data size
 - **Data efficiency:** labels or data needed to reach the raw-only baseline
@@ -80,9 +80,13 @@ Since experiment 16, a bar only counts as passed if the **whole 95% confidence i
 
 ## Plan
 
-**Where it stands (experiments 1–17, details in the README):** on Fashion-MNIST, learned words clearly beat raw pixels with few labels, self-contained set words (8 bytes) clearly beat a 49-byte thumbnail, and a new model can learn a frozen dictionary well enough to be mostly understood by others. All effects are small and on a toy dataset.
+**Where it stands (experiments 1–18, details in the README):** on Fashion-MNIST, learned grid words clearly beat raw pixels with few labels (+4.0 points on the first laptop, +3.9 [+3.0, +4.8] when retrained on the second). Self-contained set words (8 bytes) beat a 49-byte thumbnail on the first laptop's dictionary (+1.8 [+0.7, +3.0]), but on the dictionary retrained on the second laptop with the same seed it is too close to call (+0.9 [−0.4, +2.2]), so that win depends on which training is used and is **no longer a clear result**. A new model can learn a frozen dictionary well enough to be mostly understood by others. All effects are small and on a toy dataset.
 
-**Best current evidence, not yet confirmed (don't treat as settled):** words seem to gain meaning when they must stand alone (experiment 10's set words: purity 17% → 70%, and a clear but small +1.8-point win over a thumbnail; but they failed "words are units" at 50 labels, and the win over PCA-8 was too close to call in experiment 16), and a shared language seems more stable when new speakers learn a frozen dictionary than when it's reinvented (experiment 15: agreement 47–51% → 58–69%; but "same symbols" failed its 70% bar and "understood by others" was too close to call). Library v0 builds on these as working assumptions, to be revisited if they don't hold.
+**Best current evidence, not yet confirmed (don't treat as settled):** words seem to gain meaning when they must stand alone (experiment 10's set words: purity 17% → 70%, and a small win over a thumbnail that was clear on one training, +1.8, and too close to call on a retraining, +0.9; but they failed "words are units" at 50 labels, and the win over PCA-8 was too close to call in experiment 16 on both trainings), and a shared language seems more stable when new speakers learn a frozen dictionary than when it's reinvented (experiment 15: agreement 47–51% → 58–69%; but "same symbols" failed its 70% bar, and "understood by others" was too close to call on the first laptop and a clear pass on the second). Library v0 builds on these as working assumptions, to be revisited if they don't hold.
+
+**Retraining is not copying (2026-10-05).** The same recipe and seed on a second machine gave a slightly different dictionary (set words 60.2% vs 61.3% at 50 labels). A dictionary is only the same dictionary if its file is copied, which is what the library's hash checks. A claim counts as settled only if it holds across trainings.
+
+**Library v0 is built (experiment 18):** one SQLite file (`fam/library.py`) with the frozen, hashed dictionary, its speaker, the messages, a word card per symbol and the scorecard. All four bars passed, but three only check that storing and reading back lose nothing. The fourth: adding up the class shares on an image's word cards names its class 76.7% [75.9%, 77.5%] of the time with no model trained. That is counting on all 60,000 training labels, not a few-label result. The searchable file is 14x bigger than the words in it, which makes the "cheaper" story harder, not easier.
 
 On PEMS-BAY road traffic (the dataset closest to the thesis: connected points over time), neighbours' raw data helped only ~2.5% and words kept a fraction of that (experiments 12–13). **Experiment 17 (post-mortem) ruled out the forecaster as the cause:** three forecaster types (shared LightGBM, linear per sensor, a mini-DCRNN graph network) all gained at most 3.5% [2.9%, 4.0%] from neighbours, a clear fail of the developer's 5% bar. A better forecaster per sensor mattered far more (graph network without neighbours 2.22 mph vs LightGBM 2.55; DCRNN 2.07).
 
@@ -90,8 +94,8 @@ On PEMS-BAY road traffic (the dataset closest to the thesis: connected points ov
 
 **Next, in this order:**
 1. ~~**PEMS-BAY post-mortem (experiment 17)**~~ **Done: FAIL** (see above). The library doesn't need to be designed around neighbours; point and time are stored as plain labels on messages.
-2. **Library v0 (next):** SQLite, end-to-end, on the best current words (experiment 10's set words): dictionaries (frozen, versioned), word cards, messages (with point and time as plain labels), scorecards, and a simple query interface. Clunky but complete.
-3. **Reader LLM:** first an off-the-shelf LLM reading word cards (no training), scored against true labels; only then train a small adapter (GPU laptop or a free GPU notebook).
+2. ~~**Library v0**~~ **Done** (experiment 18, see above): SQLite, end-to-end, on experiment 10's set words: dictionaries (frozen, versioned), word cards, messages (with point and time as plain labels), scorecards, and a simple query interface.
+3. **Reader LLM (next):** first an off-the-shelf LLM reading word cards (no training), scored against true labels; only then train a small adapter (GPU laptop or a free GPU notebook).
 4. **Telecom:** the same recipe on telecom data (Telecom Italia), for the link to the friend's work.
 
 **Candidate narrow question for the PoC (proposed 2026-10-05, not decided):** "Can a model reading words reach good accuracy with far fewer labels or less history than one reading raw data?" It tests the dictionary itself, not the neighbours: the frozen encoder writes words for any new point without learning anything, and a point with no history at all could only be predicted from its neighbours, which is the network question experiment 17 just failed on traffic. (An earlier draft, "can a brand-new point get good predictions quickly by learning the dictionary?", was dropped for that reason: it would have brought "connected points" back under a new name.) A second candidate is measuring the break-even of the "one spike, then cheap reuse" cost shape.
