@@ -110,6 +110,7 @@ The developer is learning the fundamentals while building. Explain the why behin
 
 - **One step at a time:** build one feature, train and evaluate it, show the result, then move on. Don't offer menus of options or ask for permission between small steps.
 - **Short output:** report the key result (e.g. the AUC) and a line or two on what it means, not long dumps.
+- **README as the results log:** whenever committing and pushing new work, update `README.md` with the new findings (findings table, takeaways, run instructions) in the same commit.
 
 ## Data
 
