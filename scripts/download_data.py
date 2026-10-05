@@ -6,6 +6,9 @@ check a SHA-256 hash so we know every run uses exactly the same files.
 Datasets:
   - IBM Telco Customer Churn (7,043 customers)
   - Fashion-MNIST (70,000 28x28 clothing images, 10 classes)
+  - PEMS-BAY (325 road sensors in the San Francisco Bay Area, average speed
+    every 5 minutes, Jan-Jun 2017), from the DCRNN authors (Li et al., ICLR
+    2018) on Zenodo (CC-BY-4.0), plus the road distances between sensors
 """
 
 import hashlib
@@ -14,6 +17,9 @@ from pathlib import Path
 
 RAW = Path(__file__).resolve().parent.parent / "data" / "raw"
 FASHION = "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/"
+PEMS = "https://zenodo.org/records/5146275/files/"
+# A fixed commit, so the file can't change under us.
+DCRNN = "https://raw.githubusercontent.com/liyaguang/DCRNN/602afd9d767d3aa1c9b3eac51710d6aeee12c227/"
 
 # (url, where to save it, expected SHA-256)
 FILES = [
@@ -42,6 +48,21 @@ FILES = [
         FASHION + "t10k-labels-idx1-ubyte.gz",
         RAW / "fashion_mnist" / "t10k-labels-idx1-ubyte.gz",
         "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5",
+    ),
+    (
+        PEMS + "PEMS-BAY.csv?download=1",
+        RAW / "pems_bay" / "pems_bay.csv",
+        "c39dc8f5f3a7f1e9e9deeab1f3fdfa7b87d2b4e45b4075d4c3bd3c62c3051ef2",
+    ),
+    (
+        PEMS + "PEMS-BAY-META.csv?download=1",
+        RAW / "pems_bay" / "pems_bay_meta.csv",
+        "70e20aca2cc019c100eb83e13811845e801aca366051009327f027648f662213",
+    ),
+    (
+        DCRNN + "data/sensor_graph/distances_bay_2017.csv",
+        RAW / "pems_bay" / "distances_bay_2017.csv",
+        "e5feed06bfa1ba4c554a946d0e03d99f2018365eec5a8f28fd8504dea9d082b5",
     ),
 ]
 
