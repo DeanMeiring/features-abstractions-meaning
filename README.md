@@ -28,6 +28,7 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 | 9 | Reader grid: 4 readers (linear, bag of words, k-NN, small neural net) × thumbnail / copy / control / predict words / predict numbers before the snap × 50, 1,000 and all 60,000 labels | Predict vs control words: −0.1 points with all labels (linear), −1.1 at 50 labels (best reader); never ≥ +2 anywhere · before vs after snap: +0.1 · 60,000 labels, linear: words 86.7% vs thumbnail 81.0% · 50 labels, best: words +3.0 over thumbnail (MLP) · bag of words: 23–26% at 50 labels | **Words problem, by the bar fixed in advance:** experiment 8's hidden-half knowledge isn't in the words in a form any reader can use, and snapping to words loses nothing. But with many labels all our words clearly beat the thumbnail (+5.7 points), so they do hold more than a blur; with 50 labels the labels themselves are the bottleneck. Bag of words fails: these words only mean something at their grid position. |
 | 10 | Self-contained words: each image becomes an unordered set of **8 words** (8 bytes); each word draws its own picture layer and the layers are added, so order and position can't carry meaning | **Word purity 70%** (grid words: 17%) · 50 labels: set words 61.3% (8 B) vs thumbnail 59.3% (49 B) vs PCA-8 58.9% (8 B) · bag of words 39.0% at 50 labels, but 71.2% vs 72.6% at 1,000 and 78.4% vs 77.9% at 60,000 · rebuild error 0.021 | **Passed 'words carry meaning', failed 'words are units' (bar fixed in advance).** First words that point to a class on their own (a single word drawn alone looks like a trouser or T-shirt), and 8 bytes beat a 49-byte thumbnail with 50 labels. Counting the words works with 1,000+ labels but not with 50, likely because 256 counts are too many features for 50 examples (untested). Ceiling is lower: 8 bytes can't hold everything (78–79% vs thumbnail 81–87% with all labels). |
 | 11 | Raw-data baseline on PEMS-BAY (the standard benchmark: from a sensor's last hour, predict its speed 15 / 30 / 60 min ahead; train on the first 70% of time, test on the last 20%) | Average error (mph): last value 1.60 / 2.18 / 3.04 · LightGBM on raw readings 1.46 / 1.95 / 2.54 · LightGBM trains in ~12 s per horizon on 3M rows · raw data 68 MB (23 MB zipped) · published DCRNN: 1.38 / 1.74 / 2.07 | The bar every traffic experiment must match. Setup checks out: LightGBM lands between 'last value' and the published graph model. A plain model on raw data is already close to DCRNN at 15 min; the gap grows at 60 min, where knowing about neighbouring roads should matter most. |
+| 12 | Neighbours' words on PEMS-BAY: each sensor's last hour becomes 2 self-contained words (trained on the training months to describe that hour and predict the next). Same LightGBM: A = own hour; B = + 5 nearest neighbours' raw hours (60 bytes); C = + their words (10 bytes) | Error at 15 / 30 / 60 min (mph): A 1.46 / 1.96 / 2.54 · B 1.45 / 1.93 / 2.48 · C 1.47 / 1.96 / 2.53 · training at 60 min: A 21 s, B 63 s, C 32 s | **Network helps: FAIL** (best cut 2.4%, bar 3%). **Words keep it: PASS on paper, but hollow:** C is within 2% of B only because B barely helps; the words kept about 1/6 of the raw neighbours' small gain (2.53 vs 2.48, A 2.54). Lesson: the bar should have asked words to keep most of the network's gain, not just stay close. All three forecasts still see a jam about an hour late. |
 
 All Telco AUCs are averaged over repeated cross-validation splits (15 for experiment 1, 10 for 2–3), so one lucky test split can't decide a result. In experiments 2–3, model B predicts a different task (long contract vs month-to-month) with the `Contract` column hidden from both models. Image accuracies are averaged over 5 random picks of labelled images per size, tested on the 10,000 test images.
 
@@ -47,6 +48,10 @@ Experiment 10, originals (top), rebuilt from 8 self-contained words (middle), an
 
 ![Set words: rebuilds and single words](results/10_set_words.png)
 
+Experiment 12, one test-month rush hour on sensor 400209: actual speed vs forecasts made 60 minutes earlier (left), and error by horizon against the published DCRNN (right):
+
+![PEMS-BAY forecasts](results/12_forecasts.png)
+
 ### What we've learned
 
 - **On small, clean data, raw features win.** Telco is small and clean; LightGBM finds the patterns itself, even from 50 labels. The learned language matters more where raw data is big, messy, or hard to read directly (images helped; Telco didn't).
@@ -58,6 +63,7 @@ Experiment 10, originals (top), rebuilt from 8 self-contained words (middle), an
 - **Knowing isn't the same as being easy to read.** In experiment 8 the predict model learned real knowledge about clothing shapes, yet model B (a simple linear reader with 50 labels) did no better with its words. The knowledge may sit in the decoder, or in a form a linear reader can't use. Open question: is the problem the words, or the reader?
 - **It was the words, not the reader (experiment 9).** No reader (linear, k-NN, neural net) and no amount of labels made the predict words beat the control. The extra knowledge from predicting stays in the model, not in its 49 words. Two more lessons: with all 60,000 labels the words beat a thumbnail by 5.7 points, so they do carry more than a blur, but 50 labels are too few for any reader to use it; and our words are not yet like a language's words, since counting them without their positions loses most of the meaning.
 - **Forcing words to stand alone gave them meaning (experiment 10).** When words can't lean on position (an unordered set whose picture layers are added), each word learns a whole-garment concept: word purity jumped from 17% to 70%, and 8 such words beat a 49-byte thumbnail with 50 labels. It's the first step from pixel codes toward a vocabulary. Trade-off: 8 bytes keep less detail, so the ceiling with many labels is lower.
+- **Simply adding neighbours isn't enough (experiment 12).** Giving a sensor its 5 nearest neighbours' last hour cut the 60-minute error by only 2.4% (raw) or 0.4% (words), far from the published graph model DCRNN. Likely reasons: the neighbours are picked by distance, not by direction of traffic (upstream jams are what arrive next), and one shared LightGBM can't learn which neighbour matters for which sensor. The network idea needs the connections to carry direction and learned weight, which is what graph models do.
 
 ### Next steps
 
@@ -98,6 +104,8 @@ Experiment 10, originals (top), rebuilt from 8 self-contained words (middle), an
    **Success bar for experiment 12, fixed before running** (PEMS-BAY: do neighbours' words help a sensor forecast? Each sensor's last hour becomes 2 self-contained words from a 256-word dictionary, trained on the training months only to describe that hour and predict the next. Same LightGBM for: A = own last hour; B = own hour + 5 nearest neighbours' raw hours; C = own hour + 5 neighbours' words. Judged on the 60-minute forecast, test period):
    - *Network helps:* B or C cuts A's error by at least 3%.
    - *Words keep it:* C's error is within 2% of B's, while neighbours send at least 5x fewer bytes (2 words vs 12 one-byte readings each).
+
+   **Result: network helps FAIL** (2.4% cut, bar 3%); **words keep it PASS, but only because the raw network gain was small** (words kept ~1/6 of it). See experiment 12.
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
@@ -119,6 +127,7 @@ python experiments/08_predict_words.py  # needs experiment 4; ~13 min at 4 threa
 python experiments/09_reader_grid.py     # needs experiment 8; ~15 min at 4 threads
 python experiments/10_set_words.py       # needs experiment 4; ~9 min at 4 threads
 python experiments/11_traffic_baseline.py # ~1.5 min
+python experiments/12_neighbour_words.py # ~7 min at 4 threads
 ```
 
 ## Layout
@@ -127,6 +136,7 @@ python experiments/11_traffic_baseline.py # ~1.5 min
 - `fam/data.py`: loading Telco and the shared evaluation (fixed splits, fixed model settings)
 - `fam/autoencoder.py`: autoencoder that compresses a customer into a few numbers
 - `fam/vqvae.py`: VQ-VAE that writes a customer as words from a learned vocabulary
+- `fam/traffic_words.py`: hour words, writing a sensor's last hour of traffic as 2 self-contained words that also predict the next hour
 - `fam/traffic.py`: loading PEMS-BAY road traffic, the sensor road links, and the standard forecasting split
 - `fam/images.py`: loading Fashion-MNIST
 - `fam/image_vqvae.py`: image VQ-VAE that writes a picture as a 7×7 grid of words
