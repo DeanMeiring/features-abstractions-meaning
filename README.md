@@ -71,6 +71,12 @@ Experiment 8, half of each image hidden (top row) and each model's guess at the 
    - *Cause:* at 50 labels, predict-words beat the control's words by at least 2 points (so any gain comes from predicting, not the wider view).
 
    **Result: both failed** (+1.0 points over the thumbnail, −1.0 vs the control). See experiment 8.
+
+   **Success bar for experiment 9, fixed before running** (is the problem the words or the reader? Readers: linear, bag of words, k-NN, small neural net (MLP). Inputs: 7×7 thumbnail, copy / control / predict words from experiment 8, and the predict model's numbers before snapping to words. Labels: 50 (20 picks), 1,000 (5 picks), all 60,000):
+   - *Reader problem:* with all 60,000 labels (linear reader), or with the best reader at 50 labels, predict words beat control words by at least 2 points.
+   - *Words problem:* no reader at any label size gets predict words 2 points above control words.
+   - *Snap loses it:* at 50 labels with the best reader, the predict model's numbers before the snap beat its words by at least 2 points.
+   - *Reader rescues the claim:* at 50 labels, some reader gets some words at least 5 points above the thumbnail (with the same reader).
 2. **Data with a real time dimension,** so models can learn by predicting what comes next. Cell2Cell and KDD Cup 2009 turned out to be single snapshots without real sequences; the current candidate is the Telecom Italia Milan Big Data Challenge (telecom traffic per grid square over ~2 months).
 3. **Later:** the feature library (not built yet) and the decoder LLM.
 
