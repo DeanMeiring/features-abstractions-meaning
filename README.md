@@ -93,8 +93,9 @@ Experiment 14, the learned alphabet: each of the 16 radicals drawn alone, with t
 **Current plan (after experiment 17; see CLAUDE.md "Plan"):** the experiments drifted into word-encoding variants while the library and the traffic question waited, so the order is now:
 1. ~~**PEMS-BAY post-mortem (experiment 17)**~~ **Done: FAIL.** Neighbours give every forecaster only ~2.5–3.5%, so "many connected points" is under review and the library stores point and time as plain labels.
 2. ~~**Library v0:**~~ **Done: all four bars passed** (experiment 18). SQLite end-to-end on experiment 10's set words: dictionaries, word cards, messages, scorecards, queries.
-3. **Reader LLM:** ~~phase 1, an off-the-shelf LLM reading word cards~~ **done: all three bars passed** (experiment 19, Claude Opus 5.5, $2.60). Phase 2 (next): the developer's own tailored reader, which has to beat 78.6%, ideally without cards.
-4. **Telecom:** the same recipe on telecom data.
+3. **Reader LLM:** ~~phase 1, an off-the-shelf LLM reading word cards~~ **done: all three bars passed** (experiment 19, Claude Opus 5.5, $2.60). Phase 2, the developer's own tailored reader, is **parked** (2026-10-06): experiment 19b showed the value is in the dictionary and its cards, not the reader. Unpark it only when the specific gap a reader would fill is written down first, in one sentence (the same tripwire as for encoders).
+4. **Next: set the project-level bar, then the first non-toy reuse test on telecom data** (Telecom Italia, Milan; chosen 2026-10-06 over PEMS-BAY). Words vs raw data.
+5. **PEMS-BAY reuse test**, if still useful after telecom.
 
 No new encoder variant unless one of these steps reveals a specific gap, written down first.
 
