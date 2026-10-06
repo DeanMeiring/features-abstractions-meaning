@@ -151,6 +151,13 @@ No new encoder variant unless one of these steps reveals a specific gap, written
 
 **Result: CLEAR FAIL** (0 of 3 questions pass; internet +156% [+149, +165] and calls +80% [+77, +84] clearly fail; unusual activity +3.8% [−18.5, +27.2] too close to call). The safeguard was met on all three. See experiment 20.
 
+**Success bar for experiment 20b, fixed before computing** (is the unusual-activity signal meaning or calibration? No new data, no new encoder, no cost. Experiment 20 saved no predictions, so its two Q3 models, raw at 100% and words at 100%, are refit with exactly its inputs, settings, dictionary file and seeds):
+- *Reproduction first:* the refit test-week log losses must match experiment 20's (raw 0.1912, words 0.1515) to 3 decimals. If they don't, stop and report: no verdict.
+- *Measure:* AUC of each model on the test week's Q3 answers. AUC measures only ranking (are the truly unusual hours ranked as most likely?), not calibration. Paired difference, words minus raw, with a 95% interval from resampling the same 100 spatial blocks (2,000 draws, the same draws for both models).
+- *Meaning:* if the whole interval of the AUC difference is above 0, record "the words rank unusual hours better: the signal is about meaning, not only calibration".
+- *Calibration:* otherwise record "no evidence of meaning: experiment 20's log-loss gap came from calibration under the shifted test week".
+- *Reported, no bar:* AUC of raw and words at 2%, and each model's average predicted probability next to the test week's actual rate (3.6%).
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
