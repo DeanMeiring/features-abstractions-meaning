@@ -122,6 +122,10 @@ No new encoder variant unless one of these steps reveals a specific gap, written
 
 **Result: all three passed.** Reads the language −0.2 points [−1.5, +1.1] vs the vote (clear pass), grounded 100%, knows when unsure +36.5 points. See experiment 19.
 
+**Success bars for experiment 19b, fixed before computing** (two free checks on experiment 19's saved answers: no new API calls, no training, no new encoder; the same 500 test images; intervals from `fam/scorecard.py`):
+- *Check A, does the LLM just copy the vote?* Agreement = share of the 500 images where the LLM's class equals the card vote's class, with a 95% interval. If the whole interval is ≥ 95%: record "the LLM reads the cards the same way the vote does; it adds explanations, not judgement." If it is below 95%: report, on the images where they disagree, who is right more often, with intervals.
+- *Check B, is the LLM's confidence just the vote's margin?* Vote margin = top class share minus runner-up share, from the same cards. Take the 280 images with the highest vote margin (ties broken by image order; 280 = the number of LLM answers with confidence ≥ 0.8) and compare their accuracy with the LLM's 280 confident answers; also report accuracy on the remaining 220 for both. Paired difference, per image over all 500: (in the LLM's confident set and right) minus (in the vote's top-margin set and right), times 500/280, whose mean is the accuracy difference between the two sets of 280. The LLM's confidence counts as adding something only if the whole 95% interval of that difference is above 0. Otherwise record "the confidence comes from the cards, not the LLM."
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
