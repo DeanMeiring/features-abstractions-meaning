@@ -112,6 +112,12 @@ No new encoder variant unless one of these steps reveals a specific gap, written
 
 **Result: all four passed.** Round trip exact, reuse exact, frozen holds, and class from word cards alone 76.7% [75.9%, 77.5%], a clear pass of the 70% bar. See experiment 18.
 
+**Success bar for experiment 19, fixed before running** (reader LLM, phase 1, no training: Claude Opus 5.5 through the Claude API reads an image's 8 words plus their word cards from Library v0 (as text, e.g. `<w86>: 87% Trouser...`) and answers with the class, a confidence from 0 to 1, and the words that decided it. Chosen by the developer on 2026-10-06 as a stand-in: the goal is still the developer's own tailored reader (phase 2), which this sets the baseline for. 500 test images, a fixed random sample; compared with the card vote of experiment 18 on the same images; the library built from this laptop's dictionary):
+- *Reads the language:* the LLM's accuracy is no more than 3 points below the card vote on the same 500 images, with the whole 95% interval of the paired difference above −3 points.
+- *Grounded:* at least 95% of answers cite only words that are actually in that image's message.
+- *Knows when it's unsure:* accuracy on answers with confidence ≥ 0.8 is at least 10 points higher than on answers below 0.8.
+- *Reported, no bar:* cost, tokens and time.
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).

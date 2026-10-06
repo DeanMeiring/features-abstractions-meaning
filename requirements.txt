@@ -4,3 +4,4 @@ lightgbm
 torch
 matplotlib
 psutil
+anthropic

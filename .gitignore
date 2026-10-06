@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 .venv/
 .ipynb_checkpoints/
+
+# Secrets (e.g. ANTHROPIC_API_KEY=...): never committed
+.env
