@@ -11,15 +11,18 @@ An experiment in building an **AI-native language for ML features**. Models comp
 
 Like English: a small alphabet, an unlimited vocabulary, and short messages that carry a lot of meaning because the dictionary is shared. See [CLAUDE.md](CLAUDE.md) for the full vision and plan.
 
-**Status:** proof of concept on public data: IBM Telco Customer Churn (7,043 customers, 19 input columns), Fashion-MNIST (70,000 28×28 clothing images) and, from experiment 11, PEMS-BAY road traffic (325 connected sensors, speed every 5 minutes for 6 months).
+**Latest result (7 October 2026, experiment 26): a two-part language came within 7–9% of raw data on real telecom data, in 19 bytes instead of 288.** Learned *meaning characters* (what kind of day a Milan grid square is having) plus three *precision characters* (a fixed code for the last hour's exact SMS, calls and internet values), like a Chinese character's meaning part and the part that pins down exactly which one. Next-hour forecasting vs raw data: internet +9.4% [+8.6, +10.2], calls +7.1% [+6.5, +7.6], down from +115% and +48% with meaning characters alone. The meaning characters add a real 3.5–4.3% on top of the exact values. By the bar fixed before the run it is **too close to call** (internet's interval crosses +10% by a hair, and meaning added 4%, not the 5% required), so it counts as not shown. It is still the strongest result on real data so far.
+
+**Status:** proof of concept on public data: IBM Telco Customer Churn (7,043 customers, 19 input columns), Fashion-MNIST (70,000 28×28 clothing images), PEMS-BAY road traffic (325 connected sensors, speed every 5 minutes for 6 months, from experiment 11) and Telecom Italia (Milan, 10,000 grid squares, hourly SMS / calls / internet, from experiment 20).
 
 ## In short
 
 - **The idea:** a model squeezes raw data into a few discrete "words" from a shared, frozen dictionary, so other models (and an LLM) can reuse what it learned instead of starting from the raw data.
-- **How it is tested:** 20+ experiments on Telco churn, Fashion-MNIST, PEMS-BAY road traffic and Telecom Italia. Every success bar is written down before the run and judged on the whole 95% confidence interval.
+- **How it is tested:** 30 experiments on Telco churn, Fashion-MNIST, PEMS-BAY road traffic and Telecom Italia. Every success bar is written down before the run and judged on the whole 95% confidence interval.
 - **What worked:** an image becomes 8 bytes instead of 784, and the words beat raw pixels by about 4 points with 50 labels. Single words that carry meaning on their own (70% purity), a hash-verified SQLite library, and an off-the-shelf LLM that reads the words through their cards (78.6%) also held up. The gains are small and partly within noise on a retrained dictionary.
-- **What failed:** on real telecom data the words lose to raw data on next-hour forecasting (1.8–2.5x the error), the unusual-activity signal turned out to be calibration, and connected sensors added only about 3.5% on traffic. The project-level bar was a clear fail.
-- **Status:** in progress. The next step is a deliberate choice of which part of the claim to keep and test, with a new bar written first.
+- **What failed:** on real telecom data, learned words alone lose to raw data on next-hour forecasting (1.5–2.5x the error, even with 16 predictive correction words): a compact learned summary blurs the exact recent values forecasting needs. The unusual-activity signal turned out to be calibration, and connected sensors added only about 3.5% on traffic. The project-level bar (experiment 20) was a clear fail.
+- **What came closest (experiment 26):** adding precision characters for exact values next to the learned meaning characters: within 7–9% of raw data in 19 bytes, too close to call by the bar.
+- **Status (7 October 2026):** in progress. Next is a review together of experiment 26, per the stop rule, before any new test.
 
 ![Fashion-MNIST: originals (784 bytes), rebuilt from 8 words (8 bytes), and single words drawn alone](results/10_set_words.png)
 
