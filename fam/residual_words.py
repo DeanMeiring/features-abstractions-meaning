@@ -20,11 +20,12 @@ from torch.nn import functional as F
 
 
 class CorrectionWords(nn.Module):
-    def __init__(self, size: int = 72, latent: int = 32, n_words: int = 16, vocab_size: int = 256):
+    def __init__(self, size: int = 72, latent: int = 32, n_words: int = 16, vocab_size: int = 256, future: int = 0):
+        """future (experiment 25): how many future numbers the decoder also predicts (0 = rebuild only)."""
         super().__init__()
-        self.size, self.latent, self.n_words = size, latent, n_words
+        self.size, self.latent, self.n_words, self.future = size, latent, n_words, future
         self.encoder = nn.Sequential(nn.Linear(size, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU(), nn.Linear(256, latent))
-        self.decoder = nn.Sequential(nn.Linear(latent, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU(), nn.Linear(256, size))
+        self.decoder = nn.Sequential(nn.Linear(latent, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU(), nn.Linear(256, size + future))
         # One 256-word dictionary per position: dictionary k only ever describes what words 1..k-1 missed.
         self.codebooks = nn.Parameter(torch.randn(n_words, vocab_size, latent) * 0.1)
 
@@ -47,7 +48,8 @@ class CorrectionWords(nn.Module):
 
 def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: int = 0, lr: float = 2e-3,
           revive: bool = True, check: np.ndarray | None = None, lr_to_zero: bool = False,
-          keep_best: bool = False) -> CorrectionWords:
+          keep_best: bool = False, future: np.ndarray | None = None,
+          check_future: np.ndarray | None = None) -> CorrectionWords:
     """Learn the 16 dictionaries from standardised training windows alone (no targets).
 
     lr, revive: the two suspects in experiment 21 run 1's breakdown (experiment 21a).
@@ -57,10 +59,14 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
     keep_best (experiment 22): return the pass with the lowest 16-word rebuild error on
         `check`, not the last pass. The model's `history` attribute keeps every pass's
         check errors (1..16 words), for the health gate.
+    future, check_future (experiment 25): the next hours after each window. The message must
+        then also predict them; rebuild and prediction errors are weighted equally, and the
+        check errors (history, keep_best) are their sum.
     """
     torch.manual_seed(seed)
     x_all = torch.tensor(windows, dtype=torch.float32)
-    model = CorrectionWords(size=windows.shape[1])
+    f_all = None if future is None else torch.tensor(future, dtype=torch.float32)
+    model = CorrectionWords(size=windows.shape[1], future=0 if future is None else future.shape[1])
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     steps = epochs * -(-len(x_all) // batch_size)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: 1 - step / steps if lr_to_zero else 1.0)
@@ -70,7 +76,8 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
         used = torch.zeros(model.n_words, model.codebooks.shape[1], dtype=torch.bool)
         totals = np.zeros(model.n_words)
         for start in range(0, len(x_all), batch_size):
-            x = x_all[order[start:start + batch_size]]
+            batch = order[start:start + batch_size]
+            x = x_all[batch]
             z = model.encoder(x)
             ids, vectors, seen = model.quantize(z)
             for k in range(model.n_words):
@@ -79,8 +86,10 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
             # The straight-through trick (see fam/vqvae.py) lets learning reach the encoder.
             prefixes = torch.cumsum(vectors, dim=1)                      # (n, 16, latent)
             passed_on = z[:, None] + (prefixes - z[:, None]).detach()
-            rebuilt = model.decoder(passed_on)                           # (n, 16, 72)
-            per_k = ((rebuilt - x[:, None]) ** 2).mean(dim=(0, 2))       # rebuild error for each k
+            rebuilt = model.decoder(passed_on)                           # (n, 16, 72 [+ future])
+            per_k = ((rebuilt[..., :model.size] - x[:, None]) ** 2).mean(dim=(0, 2))   # rebuild error for each k
+            if f_all is not None:                                        # + prediction error for each k
+                per_k = per_k + ((rebuilt[..., model.size:] - f_all[batch][:, None]) ** 2).mean(dim=(0, 2))
             loss = (per_k.mean()
                     + F.mse_loss(vectors, seen.detach())                 # each word moves toward what it described
                     + 0.25 * F.mse_loss(z, prefixes[:, -1].detach()))    # the encoder commits to its message
@@ -98,7 +107,7 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
                     dead = (~used[k]).nonzero().flatten()
                     if len(dead):
                         model.codebooks[k, dead] = seen[torch.randint(len(sample), (len(dead),)), k]
-        errors = totals / len(x_all) if check is None else rebuild_errors(model, check)
+        errors = totals / len(x_all) if check is None else rebuild_errors(model, check, check_future)
         history.append(errors)
         if keep_best and errors[15] < best:
             best, best_state = errors[15], {k: v.clone() for k, v in model.state_dict().items()}
@@ -112,13 +121,17 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
 
 
 @torch.no_grad()
-def rebuild_errors(model: CorrectionWords, windows: np.ndarray) -> np.ndarray:
-    """Rebuild error for each message length k = 1..16 on the given windows."""
+def rebuild_errors(model: CorrectionWords, windows: np.ndarray, future: np.ndarray | None = None) -> np.ndarray:
+    """Rebuild error for each message length k = 1..16 on the given windows (past part only),
+    plus the prediction error of the next hours when `future` is given."""
     model.eval()
     x = torch.tensor(windows, dtype=torch.float32)
     _, vectors, _ = model.quantize(model.encoder(x))
     rebuilt = model.decoder(torch.cumsum(vectors, dim=1))
-    return ((rebuilt - x[:, None]) ** 2).mean(dim=(0, 2)).numpy()
+    errors = ((rebuilt[..., :model.size] - x[:, None]) ** 2).mean(dim=(0, 2))
+    if future is not None:
+        errors = errors + ((rebuilt[..., model.size:] - torch.tensor(future, dtype=torch.float32)[:, None]) ** 2).mean(dim=(0, 2))
+    return errors.numpy()
 
 
 @torch.no_grad()
