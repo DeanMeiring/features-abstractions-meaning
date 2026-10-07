@@ -45,12 +45,17 @@ class CorrectionWords(nn.Module):
         return sum(self.codebooks[j][ids[:, j]] for j in range(k))
 
 
-def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: int = 0) -> CorrectionWords:
-    """Learn the 16 dictionaries from standardised training windows alone (no targets)."""
+def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: int = 0, lr: float = 2e-3,
+          revive: bool = True, check: np.ndarray | None = None) -> CorrectionWords:
+    """Learn the 16 dictionaries from standardised training windows alone (no targets).
+
+    lr, revive: the two suspects in experiment 21 run 1's breakdown (experiment 21a).
+    check: other windows to measure the rebuild error on after every pass (eval mode).
+    """
     torch.manual_seed(seed)
     x_all = torch.tensor(windows, dtype=torch.float32)
     model = CorrectionWords(size=windows.shape[1])
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
         order = torch.randperm(len(x_all))
         used = torch.zeros(model.n_words, model.codebooks.shape[1], dtype=torch.bool)
@@ -75,7 +80,7 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
             optimizer.step()
             totals += per_k.detach().numpy() * len(x)
         # Revive entries nobody used, on residuals that dictionary actually sees.
-        if epoch < epochs - 1:
+        if revive and epoch < epochs - 1:
             with torch.no_grad():
                 sample = x_all[torch.randint(len(x_all), (4096,))]
                 _, _, seen = model.quantize(model.encoder(sample))
@@ -83,10 +88,21 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
                     dead = (~used[k]).nonzero().flatten()
                     if len(dead):
                         model.codebooks[k, dead] = seen[torch.randint(len(sample), (len(dead),)), k]
-        errors = totals / len(x_all)
+        errors = totals / len(x_all) if check is None else rebuild_errors(model, check)
         print(f"  epoch {epoch + 1}/{epochs}: rebuild error with 1 / 4 / 16 words {errors[0]:.3f} / {errors[3]:.3f} / "
-              f"{errors[15]:.3f}, entries used {int(used.sum())}/{used.numel()}")
+              f"{errors[15]:.3f}, entries used {int(used.sum())}/{used.numel()}", flush=True)
+        model.train()
     return model.eval()
+
+
+@torch.no_grad()
+def rebuild_errors(model: CorrectionWords, windows: np.ndarray) -> np.ndarray:
+    """Rebuild error for each message length k = 1..16 on the given windows."""
+    model.eval()
+    x = torch.tensor(windows, dtype=torch.float32)
+    _, vectors, _ = model.quantize(model.encoder(x))
+    rebuilt = model.decoder(torch.cumsum(vectors, dim=1))
+    return ((rebuilt - x[:, None]) ** 2).mean(dim=(0, 2)).numpy()
 
 
 @torch.no_grad()

@@ -31,8 +31,9 @@ from numpy.lib.stride_tricks import sliding_window_view
 from fam import residual_words, telecom
 
 SMOKE = "--smoke" in sys.argv
-MODEL_FILE = ROOT / "data" / "models" / ("telecom_correction_words_smoke.pt" if SMOKE else "telecom_correction_words.pt")
+MODEL_FILE = ROOT / "data" / "models" / ("telecom_correction_words_smoke.pt" if SMOKE else "telecom_correction_words_run2.pt")
 HISTORY, KS = 24, [1, 2, 4, 8, 16]
+LR = 5e-4  # run 2: 0.002 broke the training in run 1; experiment 21a chose 0.0005 on training data only
 SETTINGS = dict(n_estimators=20 if SMOKE else 300, learning_rate=0.1, num_leaves=63, random_state=0,
                 n_jobs=CPU_THREADS, verbose=-1)
 start_all = time.time()
@@ -92,7 +93,7 @@ else:
     sample = all_train[np.random.default_rng(0).choice(len(all_train), size=min(1_000_000, len(all_train)), replace=False)]
     print(f"Training the correction-word dictionaries on {len(sample):,} training windows (rebuild only)...")
     t = time.time()
-    words_model = residual_words.train(standardise(sample), epochs=1 if SMOKE else 6)
+    words_model = residual_words.train(standardise(sample), epochs=1 if SMOKE else 6, lr=LR)
     print(f"  took {time.time() - t:.0f} s")
     torch.save(words_model.state_dict(), MODEL_FILE)
     del all_train, sample
