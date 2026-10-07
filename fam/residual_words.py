@@ -46,16 +46,25 @@ class CorrectionWords(nn.Module):
 
 
 def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: int = 0, lr: float = 2e-3,
-          revive: bool = True, check: np.ndarray | None = None) -> CorrectionWords:
+          revive: bool = True, check: np.ndarray | None = None, lr_to_zero: bool = False,
+          keep_best: bool = False) -> CorrectionWords:
     """Learn the 16 dictionaries from standardised training windows alone (no targets).
 
     lr, revive: the two suspects in experiment 21 run 1's breakdown (experiment 21a).
     check: other windows to measure the rebuild error on after every pass (eval mode).
+    lr_to_zero (experiment 22): lower the learning rate linearly to zero over all passes,
+        so the steps get smaller as training settles.
+    keep_best (experiment 22): return the pass with the lowest 16-word rebuild error on
+        `check`, not the last pass. The model's `history` attribute keeps every pass's
+        check errors (1..16 words), for the health gate.
     """
     torch.manual_seed(seed)
     x_all = torch.tensor(windows, dtype=torch.float32)
     model = CorrectionWords(size=windows.shape[1])
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    steps = epochs * -(-len(x_all) // batch_size)
+    schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: 1 - step / steps if lr_to_zero else 1.0)
+    history, best, best_state = [], np.inf, None
     for epoch in range(epochs):
         order = torch.randperm(len(x_all))
         used = torch.zeros(model.n_words, model.codebooks.shape[1], dtype=torch.bool)
@@ -78,6 +87,7 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            schedule.step()
             totals += per_k.detach().numpy() * len(x)
         # Revive entries nobody used, on residuals that dictionary actually sees.
         if revive and epoch < epochs - 1:
@@ -89,9 +99,15 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
                     if len(dead):
                         model.codebooks[k, dead] = seen[torch.randint(len(sample), (len(dead),)), k]
         errors = totals / len(x_all) if check is None else rebuild_errors(model, check)
+        history.append(errors)
+        if keep_best and errors[15] < best:
+            best, best_state = errors[15], {k: v.clone() for k, v in model.state_dict().items()}
         print(f"  epoch {epoch + 1}/{epochs}: rebuild error with 1 / 4 / 16 words {errors[0]:.3f} / {errors[3]:.3f} / "
               f"{errors[15]:.3f}, entries used {int(used.sum())}/{used.numel()}", flush=True)
         model.train()
+    if keep_best:
+        model.load_state_dict(best_state)
+    model.history = np.array(history)
     return model.eval()
 
 
