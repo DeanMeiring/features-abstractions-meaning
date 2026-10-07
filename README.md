@@ -13,6 +13,18 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 
 **Status:** proof of concept on public data: IBM Telco Customer Churn (7,043 customers, 19 input columns), Fashion-MNIST (70,000 28×28 clothing images) and, from experiment 11, PEMS-BAY road traffic (325 connected sensors, speed every 5 minutes for 6 months).
 
+## In short
+
+- **The idea:** a model squeezes raw data into a few discrete "words" from a shared, frozen dictionary, so other models (and an LLM) can reuse what it learned instead of starting from the raw data.
+- **How it is tested:** 20+ experiments on Telco churn, Fashion-MNIST, PEMS-BAY road traffic and Telecom Italia. Every success bar is written down before the run and judged on the whole 95% confidence interval.
+- **What worked:** an image becomes 8 bytes instead of 784, and the words beat raw pixels by about 4 points with 50 labels. Single words that carry meaning on their own (70% purity), a hash-verified SQLite library, and an off-the-shelf LLM that reads the words through their cards (78.6%) also held up. The gains are small and partly within noise on a retrained dictionary.
+- **What failed:** on real telecom data the words lose to raw data on next-hour forecasting (1.8–2.5x the error), the unusual-activity signal turned out to be calibration, and connected sensors added only about 3.5% on traffic. The project-level bar was a clear fail.
+- **Status:** in progress. The next step is a deliberate choice of which part of the claim to keep and test, with a new bar written first.
+
+![Fashion-MNIST: originals (784 bytes), rebuilt from 8 words (8 bytes), and single words drawn alone](results/10_set_words.png)
+
+*Top: original images. Middle: rebuilt from 8 words (8 bytes). Bottom: single words drawn alone, with the class they mostly appear in.*
+
 ## Findings so far
 
 | # | Experiment | Result | Takeaway |
