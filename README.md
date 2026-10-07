@@ -270,6 +270,17 @@ No new encoder variant unless one of these steps reveals a specific gap, written
 
 **Result of experiment 26: TOO CLOSE TO CALL (not shown; no reruns).** Meaning + precision vs raw data: internet +9.4% [+8.6, +10.2] (the interval crosses +10%), calls +7.1% [+6.5, +7.6] (within). Meaning + precision vs precision only: internet −3.5% [−3.9, −3.0], calls −4.3% [−4.8, −3.9] (a clear, real gain, but short of 5%). Precision only: +13.3% / +11.9%. The expectation was right on both counts: (1) came very close, and whether the meaning characters add 5% was the real question; they add about 4%. See experiment 26.
 
+**Success bar for experiment 26b, fixed before running: does the two-part language beat compressed raw data, byte for byte?** (part of the review together after experiment 26, per the stop rule; no new encoder, no retraining)
+- *Setup:* everything as experiment 26: Telecom Italia Milan, train Mon 4 – Sun 17 Nov 2013, test Mon 18 – Sun 24 Nov; the same windows, the same LightGBM settings, the same hour-of-day and weekend features, 100% of the training examples, 95% intervals over the same 100 spatial blocks. Experiment 25's dictionary is reused as it is.
+- *Arms:* **A.** meaning + precision (experiment 26's 19-byte message, recomputed); **B. raw-18:** the last 6 hours (t − 5 … t) of SMS, calls and internet, each quantized exactly like the precision characters (log(1 + x) on 256 even steps between that activity's training-week min and max), 18 bytes; **C. raw-9:** the last 3 hours, the same quantization, 9 bytes (about what the two-part message takes if bit-packed, 9.5 bytes); **D.** raw data (72 numbers), the reference.
+- *Questions:* next-hour internet (Q1) and calls (Q2) by mean absolute error; Q3 (unusual activity, log loss) reported only.
+- *Reproduction check, before anything else counts:* arm A must reproduce experiment 26: test-week errors 0.1083 (Q1) and 0.1493 (Q2) to 4 decimals, and +9.4% / +7.1% vs raw data to 1 decimal. If it doesn't, the run stops and is reported, with no verdict.
+- *"Learned characters pay for their bytes":* on both Q1 and Q2, A vs B (A / B − 1) has its whole 95% interval below 0.
+- *"Compressed raw is at least as good":* on Q1 or Q2, the whole interval of A / B − 1 is above 0.
+- *Anything else:* too close to call, which counts as not shown. No reruns, no tweaks.
+- *Reported, no bar:* A vs C, B vs D, C vs D, Q3, bytes per arm. All predictions are saved (`data/exp26b_predictions.npz`).
+- *Expectation, written before the run:* recent exact values drive next-hour forecasting, so raw-18 may come very close to A or beat it. The result decides how the write-up ends, not whether to keep building.
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
