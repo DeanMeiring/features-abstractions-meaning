@@ -22,7 +22,7 @@ Like English: a small alphabet, an unlimited vocabulary, and short messages that
 - **What worked:** an image becomes 8 bytes instead of 784, and the words beat raw pixels by about 4 points with 50 labels. Single words that carry meaning on their own (70% purity), a hash-verified SQLite library, and an off-the-shelf LLM that reads the words through their cards (78.6%) also held up. The gains are small and partly within noise on a retrained dictionary.
 - **What failed:** on real telecom data, learned words alone lose to raw data on next-hour forecasting (1.5–2.5x the error, even with 16 predictive correction words): a compact learned summary blurs the exact recent values forecasting needs. The unusual-activity signal turned out to be calibration, and connected sensors added only about 3.5% on traffic. The project-level bar (experiment 20) was a clear fail.
 - **What came closest (experiment 26):** adding precision characters for exact values next to the learned meaning characters: within 7–9% of raw data in 19 bytes, too close to call by the bar. But byte for byte (experiment 26b), a simple code of the last few hours does as well: on next-hour forecasting the learned part adds nothing that more exact values don't.
-- **Status (7 October 2026):** in progress. The review decided: write the project up, and run one final telecom test (next-day forecasting against a strong equal-bytes raw code). If the learned language doesn't win it, the telecom chapter closes.
+- **Status (7 October 2026):** in progress. The review decided: write the project up, and run one final telecom test (next-day forecasting against a strong equal-bytes raw code). If the learned language doesn't win it, the telecom chapter closes. The write-up draft is in [WRITEUP.md](WRITEUP.md).
 
 ![Fashion-MNIST: originals (784 bytes), rebuilt from 8 words (8 bytes), and single words drawn alone](results/10_set_words.png)
 
@@ -402,6 +402,7 @@ python experiments/24_dictionary_audit.py           # audit of 22b's dictionary,
 python experiments/25_predictive_encoder.py         # predictive correction words: train, health gate, forecast; ~31 min
 python experiments/26_two_part_language.py           # meaning + precision characters vs raw data; ~11 min
 python experiments/26b_bytes_for_bytes.py            # needs experiment 25's dictionary; two-part language vs byte-coded recent hours; ~9 min
+python experiments/27_next_day.py                    # needs experiment 25's dictionary (copy the file, don't retrain); next-day vs a strong equal-bytes code; ~9 min
 ```
 
 ## Layout
