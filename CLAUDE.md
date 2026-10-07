@@ -82,7 +82,7 @@ Fix the bar in the README before each experiment, so results can't be rationalis
 - **Data efficiency:** labels or data needed to reach the raw-only baseline
 - **Cost:** training time, and data stored or moved, at the same accuracy (with the one-off cost of building the dictionary reported separately)
 
-Since experiment 16, a bar only counts as passed if the **whole 95% confidence interval** clears it (`fam/scorecard.py`); otherwise it's "too close to call".
+Since experiment 16, a bar only counts as passed if the **whole 95% confidence interval** clears it (`fam/scorecard.py`); otherwise it's "too close to call". Since experiment 21, every bar that trains a dictionary also names its health gate (see Principles), checked before any test is computed.
 
 ## Plan
 
@@ -126,6 +126,8 @@ Stack: Python, pandas, scikit-learn, LightGBM, PyTorch, matplotlib; SQLite for t
 - **Version everything:** features drift and stale patterns must be detectable.
 - **Language cold-start:** LLMs know Python from billions of lines, but this language has none. Keep it small and regular so word cards fit in a prompt, and since the words are discrete they can be written as text tokens (e.g. `<w29>`), so a text LLM can be taught to read them.
 - **Measured meaning first:** a word's meaning is what its word card measures; the reader LLM explains it and never defines it. Experiment 19b backs this: the off-the-shelf reader's answers and confidence both came from the cards.
+- **Dictionary health gate (added 2026-10-07, after experiment 21).** Every dictionary training measures its rebuild error on held-out training-period windows after every pass and keeps the best pass, not the last. Before anything is built or tested on a dictionary, it must pass a health gate: its final rebuild error is within 10% of its best pass, and well below the "always guess the average" level (standardised rebuild error at most 0.5, where guessing the average gives about 1.0). A dictionary that fails the gate makes the run invalid before any test is computed: that says nothing about the idea, and it's recorded as an invalid run, not as a result. Experiment 21's two runs both trained broken dictionaries and spent 15 minutes forecasting with them; this gate would have stopped both.
+- **Smoke tests run the full training schedule** (every pass, on a small sample), not a single pass, so a breakdown that only appears after several passes shows up before the real run.
 - **No new encoder variant without a written gap.** Don't propose a new way of making words unless Library v0, the PEMS-BAY post-mortem or a later step reveals a specific gap the existing encoders can't fill, and write that gap down (in the README) before proposing the variant. Experiments 6–16 drifted into encoder variants while the library and the traffic question waited.
 
 ## Key references
