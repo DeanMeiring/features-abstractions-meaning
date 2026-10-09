@@ -110,15 +110,20 @@ del all_logs
 def inputs(arm, t_values, ahead):
     """One arm's inputs, built in a single array to keep memory down. Rows: square by square, then hour."""
     target = t_values + ahead
-    parts = [windows[:, t_values - (HISTORY - 1)].reshape(n_sq * len(t_values), HISTORY * 3)]
+    width = HISTORY * 3 + 6 * ("H" in arm) + profile_vectors.shape[1] * ("P" in arm) + 2
+    X = np.empty((n_sq * len(t_values), width), dtype=np.float32)        # filled in place: no 64-bit copies
+    X[:, :HISTORY * 3] = windows[:, t_values - (HISTORY - 1)].reshape(n_sq * len(t_values), HISTORY * 3)
+    col = HISTORY * 3
     if "H" in arm:
-        at_target = typical[:, target % 24, kind(target)]                        # typical value at the target hour
-        deviation = logs[:, t_values] - typical[:, t_values % 24, kind(t_values)]  # hour t vs its typical value
-        parts.append(np.concatenate([at_target, deviation], axis=2).reshape(-1, 6))
+        X[:, col:col + 3] = typical[:, target % 24, kind(target)].reshape(-1, 3)              # typical value at the target hour
+        X[:, col + 3:col + 6] = (logs[:, t_values] - typical[:, t_values % 24, kind(t_values)]).reshape(-1, 3)  # hour t vs typical
+        col += 6
     if "P" in arm:
-        parts.append(np.repeat(profile_vectors[squares], len(t_values), axis=0))
-    parts.append(np.tile(np.column_stack([target % 24, kind(target)]), (n_sq, 1)))
-    return np.hstack(parts).astype(np.float32)
+        X[:, col:col + profile_vectors.shape[1]] = np.repeat(profile_vectors[squares], len(t_values), axis=0)
+        col += profile_vectors.shape[1]
+    X[:, col] = np.tile(target % 24, n_sq)
+    X[:, col + 1] = np.tile(kind(target), n_sq)
+    return X
 
 
 results, predictions = {}, {}
