@@ -112,7 +112,10 @@ def inputs(arm, t_values, ahead):
     target = t_values + ahead
     width = HISTORY * 3 + 6 * ("H" in arm) + profile_vectors.shape[1] * ("P" in arm) + 2
     X = np.empty((n_sq * len(t_values), width), dtype=np.float32)        # filled in place: no 64-bit copies
-    X[:, :HISTORY * 3] = windows[:, t_values - (HISTORY - 1)].reshape(n_sq * len(t_values), HISTORY * 3)
+    rows = len(t_values)
+    for s in range(0, n_sq, 1000):                                       # 1,000 squares at a time keeps the temporary copy small
+        X[s * rows:(s + 1000) * rows, :HISTORY * 3] = \
+            windows[s:s + 1000, t_values - (HISTORY - 1)].reshape(-1, HISTORY * 3)
     col = HISTORY * 3
     if "H" in arm:
         X[:, col:col + 3] = typical[:, target % 24, kind(target)].reshape(-1, 3)              # typical value at the target hour
