@@ -1,6 +1,6 @@
 # A learned data language: what 30 pre-registered experiments showed
 
-*Draft, 7 October 2026. The conclusion waits on experiment 27, the final telecom test (its bar was committed before it ran).*
+*7–9 October 2026, after experiment 27, the final telecom test (its bar was committed before it ran). A checkpoint, not an end.*
 
 ## The idea in one paragraph
 
@@ -44,7 +44,7 @@ After the clear fail, each step was a single change with its own bar, and every 
 | 25 | Encoder trained to predict the next 6 hours | +115% / +48% |
 | 26 | Two-part language: 16 meaning characters + 3 precision characters (the last hour's exact values, 1 byte each) | **+9.4% / +7.1%** (too close to call) |
 | 26b | Same bytes spent on the last 6 hours' exact values instead | the two-part message and raw-18 tie: +0.2% / −0.9% |
-| 27 | Next-day forecasting against a strong equal-bytes raw code | *pending* |
+| 27 | Next-day forecasting (same hour tomorrow) against a strong 18-byte raw code | the raw code wins: two-part message +7.0% / +5.8% worse than it |
 
 **The finding of this chain:** a compact learned summary keeps a day's shape and type but blurs exact values, and next-hour forecasting lives on exact recent values. Adding characters that state exact values closed almost the whole gap, but byte for byte (experiment 26b), spending the same bytes on more exact recent hours does just as well. On next-hour forecasting, the precision part does the work and the learned part adds nothing.
 
@@ -56,17 +56,28 @@ Experiment 26b left one honest question: do the learned characters carry somethi
 
 The decision rule, committed with the bar: **"If A doesn't beat B on next-day forecasting, the telecom chapter closes: the write-up's conclusion is that learned summaries keep a day's shape but don't beat equal-bytes raw codes on telecom forecasting. No further narrowing before the write-up exists."**
 
-*Result: pending.*
+**Result (9 October 2026): not a pass, so the telecom chapter closes.** The strong raw code beat the two-part message on both questions, by 7.0% [6.3, 7.7] on internet and 5.8% [5.1, 6.6] on calls, and came within about 2% of all 288 bytes of raw data (+2.5% / +1.9%). The learned characters did carry real information: the message beat "same hour yesterday" alone by 6–10%. But spending the same bytes on the right exact values did better.
 
 ## What this adds up to
 
-*To be finalised after experiment 27.* The parts that won't change:
+**On telecom forecasting, learned summaries keep a day's shape but don't beat equal-bytes raw codes.** That held on next-hour and next-day questions, on a dictionary trained to rebuild and on one trained to predict, with and without precision characters. The lessons:
 
 1. **Learned discrete codes compress well and can carry meaning,** especially when each word has to stand alone, and they help most where labels are scarce (images).
 2. **A learned summary isn't a substitute for exact values.** Where a task depends on the precise recent level, the summary's blur is a hard limit that better training didn't move (experiments 24–25). A useful data language needs characters that state exact values as well as characters that describe kind, but on next-hour forecasting a simple fixed code for the values was enough on its own.
 3. **The value is in the dictionary, not the reader.** Word cards measured from data gave the meaning and the confidence; the LLM put them into sentences.
 4. **The fair comparison is byte for byte.** Comparing a 19-byte message with 288 bytes of raw data hid the real question; the right control is the best simple code of the same size.
 5. **Process lessons:** pre-registered bars and whole-interval judgement kept several small "wins" from being over-read (three earlier passes turned out to be within noise); a dictionary needs a health gate before anything is built on it; and a short smoke run can't catch a training breakdown that only appears after several passes.
+
+## What stays open
+
+This closes the telecom chapter **for this form of the idea**: words used *instead of* raw data, from this encoder, on this data. It doesn't close the idea. A pattern runs through every result: shared context helped where data was thin (50 labels on images) and faded where data was rich (weeks of history per telecom square, months per road sensor). The untested versions follow from that, each needing its own bar committed first, one at a time (details in `notes/2026-10-07-advisor-chat.md`):
+
+1. **Words on top of raw data, not instead of it,** on several questions including one the dictionary was never trained toward, with hand-built baseline features as a third arm and a neural net on raw data as a control.
+2. **Answer from the words when confident, fetch raw data only when unsure:** how much raw data is saved at the same accuracy (the "cheaper" claim).
+3. **New towers with almost no history,** where shared context may be all a point has.
+4. **Transfer:** the frozen telecom dictionary reused on road traffic.
+
+The 15 December 2026 checkpoint stands: if nothing on real data has passed by then, the claim gets rethought again.
 
 ## Limits
 
