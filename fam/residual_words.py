@@ -49,7 +49,7 @@ class CorrectionWords(nn.Module):
 def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: int = 0, lr: float = 2e-3,
           revive: bool = True, check: np.ndarray | None = None, lr_to_zero: bool = False,
           keep_best: bool = False, future: np.ndarray | None = None,
-          check_future: np.ndarray | None = None) -> CorrectionWords:
+          check_future: np.ndarray | None = None, patience: int | None = None) -> CorrectionWords:
     """Learn the 16 dictionaries from standardised training windows alone (no targets).
 
     lr, revive: the two suspects in experiment 21 run 1's breakdown (experiment 21a).
@@ -62,6 +62,8 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
     future, check_future (experiment 25): the next hours after each window. The message must
         then also predict them; rebuild and prediction errors are weighted equally, and the
         check errors (history, keep_best) are their sum.
+    patience (experiment 29): stop early when the 16-word check error hasn't improved for
+        this many passes (needs `check`); with keep_best, the best pass is returned.
     """
     torch.manual_seed(seed)
     x_all = torch.tensor(windows, dtype=torch.float32)
@@ -70,7 +72,7 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     steps = epochs * -(-len(x_all) // batch_size)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: 1 - step / steps if lr_to_zero else 1.0)
-    history, best, best_state = [], np.inf, None
+    history, best, best_state, best_epoch = [], np.inf, None, 0
     for epoch in range(epochs):
         order = torch.randperm(len(x_all))
         used = torch.zeros(model.n_words, model.codebooks.shape[1], dtype=torch.bool)
@@ -109,11 +111,16 @@ def train(windows: np.ndarray, epochs: int = 6, batch_size: int = 1024, seed: in
                         model.codebooks[k, dead] = seen[torch.randint(len(sample), (len(dead),)), k]
         errors = totals / len(x_all) if check is None else rebuild_errors(model, check, check_future)
         history.append(errors)
-        if keep_best and errors[15] < best:
-            best, best_state = errors[15], {k: v.clone() for k, v in model.state_dict().items()}
+        if errors[15] < best:
+            best, best_epoch = errors[15], epoch
+            if keep_best:
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
         print(f"  epoch {epoch + 1}/{epochs}: rebuild error with 1 / 4 / 16 words {errors[0]:.3f} / {errors[3]:.3f} / "
               f"{errors[15]:.3f}, entries used {int(used.sum())}/{used.numel()}", flush=True)
         model.train()
+        if patience is not None and epoch - best_epoch >= patience:
+            print(f"  stopped early: no improvement for {patience} passes (best was pass {best_epoch + 1})", flush=True)
+            break
     if keep_best:
         model.load_state_dict(best_state)
     model.history = np.array(history)
