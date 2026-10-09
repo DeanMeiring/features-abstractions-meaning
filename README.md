@@ -389,6 +389,7 @@ python experiments/18_library_v0.py      # needs experiments 10 and 14; ~20 s; b
 python experiments/19_reader_llm.py      # needs experiment 18 and an Anthropic API key in .env; ~7 min, ~$2.60
 python experiments/19b_reader_checks.py  # needs experiments 18 and 19 (saved answers); free, ~5 s
 python scripts/download_telecom.py       # checks the 21 Telecom Italia files (download them in a browser first: see the script)
+python scripts/make_setup_zip.py --unpack # or skip the download: unpacks setup/telecom_setup.zip (the hourly data + the telecom dictionaries, hash-checked; ODbL 1.0)
 python experiments/20a_share_rule.py     # the share rule for experiment 20, raw data and training weeks only; ~8 min
 python experiments/20_telecom_reuse.py   # the telecom reuse test; ~19 min at 4 threads, peak RAM ~4.5 GB
 python experiments/20b_unusual_auc.py    # needs experiment 20 (its dictionary); refits the Q3 models, ~12 min
