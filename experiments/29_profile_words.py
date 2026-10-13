@@ -36,15 +36,25 @@ from numpy.lib.stride_tricks import sliding_window_view
 from fam import residual_words, telecom
 
 SMOKE = "--smoke" in sys.argv
-MODEL_FILE = ROOT / "data" / "models" / ("telecom_profile_words_smoke.pt" if SMOKE else "telecom_profile_words.pt")
+# Experiment 29b's two replication runs (defaults = experiment 29 exactly):
+#   --seed 1        run S: the dictionary trained with another seed
+#   --later-week    run W: every week one week later (train 11-24 Nov, test 25 Nov - 1 Dec)
+SEED = int(sys.argv[sys.argv.index("--seed") + 1]) if "--seed" in sys.argv else 0
+LATER = "--later-week" in sys.argv
+TAG = ("_laterweek" if LATER else "") + (f"_seed{SEED}" if SEED else "") + ("_smoke" if SMOKE else "")
+MODEL_FILE = ROOT / "data" / "models" / f"telecom_profile_words{TAG}.pt"
 HISTORY, EPOCHS, BATCH, PATIENCE = 24, 300, 256, 20
 SETTINGS = dict(n_estimators=20 if SMOKE else 300, learning_rate=0.1, num_leaves=63, random_state=0,
                 n_jobs=CPU_THREADS, verbose=-1)
 ARMS = ["R", "R+P", "R+H", "R+H+P"]
 start_all = time.time()
 
-all_logs = np.log1p(telecom.load_hourly())                # (10,000 squares, hours, 3)
-train_hours = telecom.TRAIN_HOURS
+counts = telecom.load_hourly(28)[:, 7 * 24:] if LATER else telecom.load_hourly()   # both start on a Monday
+all_logs = np.log1p(counts)                               # (10,000 squares, 21 days of hours, 3)
+del counts
+HOURS = all_logs.shape[1]
+train_hours = telecom.TRAIN_HOURS                         # the first two weeks; the third is the test week
+print(f"Run: seed {SEED}, {'train 11-24 Nov, test 25 Nov - 1 Dec' if LATER else 'train 4-17 Nov, test 18-24 Nov'}")
 mean = all_logs[:, :train_hours].mean(axis=(0, 1))
 spread = all_logs[:, :train_hours].std(axis=(0, 1))
 
@@ -68,7 +78,7 @@ print(f"Training the profile dictionary on {len(fit_rows):,} squares (at most {E
       f"checking on {len(check_rows):,}...")
 t0 = time.time()
 model = residual_words.train(profiles[fit_rows], epochs=EPOCHS, batch_size=BATCH, lr=5e-4, check=profiles[check_rows],
-                             lr_to_zero=True, keep_best=True, revive=False, patience=PATIENCE)
+                             lr_to_zero=True, keep_best=True, revive=False, patience=PATIENCE, seed=SEED)
 print(f"  took {time.time() - t0:.0f} s")
 torch.save(model.state_dict(), MODEL_FILE)
 
@@ -132,7 +142,7 @@ def inputs(arm, t_values, ahead):
 results, predictions = {}, {}
 for horizon, ahead in (("next hour", 1), ("next day", 24)):
     train_t = np.arange(HISTORY - 1, train_hours - ahead)
-    test_t = np.arange(train_hours - ahead, telecom.HOURS - ahead)
+    test_t = np.arange(train_hours - ahead, HOURS - ahead)
     answers = {split: {"internet": logs[:, t + ahead, 2].reshape(-1), "calls": logs[:, t + ahead, 1].reshape(-1)}
                for split, t in (("train", train_t), ("test", test_t))}
     blocks = np.repeat(telecom.spatial_blocks()[squares], len(test_t))
@@ -146,8 +156,9 @@ for horizon, ahead in (("next hour", 1), ("next day", 24)):
         del X_train, X_test
         print(f"  {horizon}, {arm} done ({time.time() - start_all:.0f} s since start)")
 
-out_file = ROOT / "data" / ("exp29_predictions_smoke.npz" if SMOKE else "exp29_predictions.npz")
-np.savez(out_file, **predictions)
+out_file = ROOT / "data" / f"exp29_predictions{TAG}.npz"
+errors_out = {f"err_{arm}_{q}".replace(" ", "_"): res[arm] for q, res in results.items() for arm in ARMS}
+np.savez(out_file, blocks=next(iter(results.values()))["blocks"], **predictions, **errors_out)   # errors: for 29b's verdict
 print(f"Predictions saved to {out_file.relative_to(ROOT)}")
 
 print("\nTest-week error (mean absolute error of log(1 + x)):\n")
