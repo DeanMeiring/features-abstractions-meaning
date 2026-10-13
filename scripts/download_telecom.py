@@ -1,4 +1,4 @@
-"""Download 4 weeks of the Telecom Italia Milan data into data/raw/telecom_milan/.
+"""Download 8 weeks of the Telecom Italia Milan data into data/raw/telecom_milan/.
 
 "Telecommunications - SMS, Call, Internet - MI" (Telecom Italia Big Data
 Challenge, Harvard Dataverse, doi:10.7910/DVN/EGZHFV), released under ODbL 1.0.
@@ -6,14 +6,15 @@ Activity (SMS, calls, internet) per grid square of Milan every 10 minutes.
 
 Mon 2013-11-04 to Sun 2013-11-24 (21 files, 7.3 GB): two weeks to train on, one
 week to test. Plus Mon 2013-11-25 to Sun 2013-12-01 (7 files, added 2026-10-13): a
-second test week, for replicating experiment 29. The full set (62 files, 20.8 GB)
-isn't needed. Each file is
+second test week, for replicating experiment 29. Plus Mon 2013-12-02 to Sun
+2013-12-29 (28 files, added 2026-10-13): four more test weeks for experiment 30.
+56 files in all; the rest of the full set (62 files, to 1 Jan 2014) isn't needed. Each file is
 checked against the MD5 checksum the repository publishes, and skipped if it's
 already there and correct, so the script can be rerun after an interruption.
 
 The repository asks for a one-time guestbook form (name, email, purpose) before
 it serves the files, so a plain download is refused. Download them in a browser
-from https://doi.org/10.7910/DVN/EGZHFV (select these 28 files, fill in the form),
+from https://doi.org/10.7910/DVN/EGZHFV (select these 56 files, fill in the form),
 put the .txt files directly in data/raw/telecom_milan/, then run this script to
 check them.
 """
@@ -57,6 +58,35 @@ FILES = [
     (2674264, "sms-call-internet-mi-2013-11-29.txt", "4ee896fb8afb2fb1d7569119533d75c0"),
     (2674275, "sms-call-internet-mi-2013-11-30.txt", "54ae3a2aeb373d3cbd031ba32dc8e778"),
     (2674292, "sms-call-internet-mi-2013-12-01.txt", "785eed3199d70341ad3eb427ab157297"),
+    # Four more weeks (added 2026-10-13), test weeks for experiment 30 (does the profile gain hold across weeks?).
+    (2674287, "sms-call-internet-mi-2013-12-02.txt", "6ad0d9bc559c22efbfe1bfe33619b393"),
+    (2674294, "sms-call-internet-mi-2013-12-03.txt", "a253615038abf0e191a1d3bb03d26aa2"),
+    (2674307, "sms-call-internet-mi-2013-12-04.txt", "e4abdf54f50618a0d8fcf2db1cf18817"),
+    (2674291, "sms-call-internet-mi-2013-12-05.txt", "42004492d87a1b76a91ad2e6b2e89f52"),
+    (2674295, "sms-call-internet-mi-2013-12-06.txt", "6a236e67403ced6fa303f603dd0b80e6"),
+    (2674301, "sms-call-internet-mi-2013-12-07.txt", "07e1b99c3cea4adf0ce07028ebbff601"),
+    (2674311, "sms-call-internet-mi-2013-12-08.txt", "aa44fac0820e01a5c0268df7f4547cb0"),
+    (2674313, "sms-call-internet-mi-2013-12-09.txt", "dc35aa2f908f60e6fc45663379b57dc8"),
+    (2674309, "sms-call-internet-mi-2013-12-10.txt", "89f524e4039f111c2b0eec8667b9c33b"),
+    (2674314, "sms-call-internet-mi-2013-12-11.txt", "cd7581d7d586c4741866976c5946481b"),
+    (2674310, "sms-call-internet-mi-2013-12-12.txt", "79adf11aa1acb2863a44cfbc601a6ba6"),
+    (2674315, "sms-call-internet-mi-2013-12-13.txt", "07d9d9b536ad330841c60659e39f09c0"),
+    (2674293, "sms-call-internet-mi-2013-12-14.txt", "ad7ab3089c14b110786d86f8a9be4c91"),
+    (2674306, "sms-call-internet-mi-2013-12-15.txt", "c227bcd0c387de3d88c3b52fff1512ca"),
+    (2674289, "sms-call-internet-mi-2013-12-16.txt", "ccd799e2f437f7229fbea070f22c7ea3"),
+    (2674316, "sms-call-internet-mi-2013-12-17.txt", "0c4d4cafc22cb209e2acb88782438482"),
+    (2674312, "sms-call-internet-mi-2013-12-18.txt", "cf67bd1a84432cc6b4800488d2c5d166"),
+    (2674286, "sms-call-internet-mi-2013-12-19.txt", "4dc65086f76e8ec6eb08f9dee4f60586"),
+    (2674288, "sms-call-internet-mi-2013-12-20.txt", "4b8b24622a83d0a0944155a429411cab"),
+    (2674303, "sms-call-internet-mi-2013-12-21.txt", "c3acc3d3cf7f946f32b283bfb823af8a"),
+    (2674308, "sms-call-internet-mi-2013-12-22.txt", "355c8c198af7e372ba9e3d7b7f01a3b5"),
+    (2674290, "sms-call-internet-mi-2013-12-23.txt", "1dd238f0b3111d75c9bae8654617db18"),
+    (2674305, "sms-call-internet-mi-2013-12-24.txt", "6ea08442917409774e451d03ebd98332"),
+    (2674304, "sms-call-internet-mi-2013-12-25.txt", "9ad51e1d206b52a54e3d6f95c31e1170"),
+    (2674298, "sms-call-internet-mi-2013-12-26.txt", "ccca2ca9e50405eca22c508d4df6a57a"),
+    (2674297, "sms-call-internet-mi-2013-12-27.txt", "479e93d8b6c442f0dc44085c9984ad30"),
+    (2674296, "sms-call-internet-mi-2013-12-28.txt", "cd02c07e7c956b0abaee6495cf6fe830"),
+    (2674317, "sms-call-internet-mi-2013-12-29.txt", "4d0cd54e39373db049374818174d67b9"),
 ]
 
 

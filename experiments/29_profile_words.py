@@ -22,6 +22,7 @@ Bar (README, committed before this was built):
 
 import sys
 import time
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,9 +40,12 @@ SMOKE = "--smoke" in sys.argv
 # Experiment 29b's two replication runs (defaults = experiment 29 exactly):
 #   --seed 1        run S: the dictionary trained with another seed
 #   --later-week    run W: every week one week later (train 11-24 Nov, test 25 Nov - 1 Dec)
+# Experiment 30: --weeks-later k (k = 0..5) moves every week k weeks later (--later-week is k = 1).
 SEED = int(sys.argv[sys.argv.index("--seed") + 1]) if "--seed" in sys.argv else 0
-LATER = "--later-week" in sys.argv
-TAG = ("_laterweek" if LATER else "") + (f"_seed{SEED}" if SEED else "") + ("_smoke" if SMOKE else "")
+WEEKS_LATER = (int(sys.argv[sys.argv.index("--weeks-later") + 1]) if "--weeks-later" in sys.argv
+               else 1 if "--later-week" in sys.argv else 0)
+TAG = ({0: "", 1: "_laterweek"}.get(WEEKS_LATER, f"_weeks{WEEKS_LATER}") + (f"_seed{SEED}" if SEED else "")
+       + ("_smoke" if SMOKE else ""))
 MODEL_FILE = ROOT / "data" / "models" / f"telecom_profile_words{TAG}.pt"
 HISTORY, EPOCHS, BATCH, PATIENCE = 24, 300, 256, 20
 SETTINGS = dict(n_estimators=20 if SMOKE else 300, learning_rate=0.1, num_leaves=63, random_state=0,
@@ -49,12 +53,15 @@ SETTINGS = dict(n_estimators=20 if SMOKE else 300, learning_rate=0.1, num_leaves
 ARMS = ["R", "R+P", "R+H", "R+H+P"]
 start_all = time.time()
 
-counts = telecom.load_hourly(28)[:, 7 * 24:] if LATER else telecom.load_hourly()   # both start on a Monday
+counts = (telecom.load_hourly(21 + 7 * WEEKS_LATER)[:, 7 * 24 * WEEKS_LATER:] if WEEKS_LATER
+          else telecom.load_hourly())                     # every slice starts on a Monday
 all_logs = np.log1p(counts)                               # (10,000 squares, 21 days of hours, 3)
 del counts
 HOURS = all_logs.shape[1]
 train_hours = telecom.TRAIN_HOURS                         # the first two weeks; the third is the test week
-print(f"Run: seed {SEED}, {'train 11-24 Nov, test 25 Nov - 1 Dec' if LATER else 'train 4-17 Nov, test 18-24 Nov'}")
+first_day = date(2013, 11, 4) + timedelta(weeks=WEEKS_LATER)
+print(f"Run: seed {SEED}, train {first_day:%d %b} - {first_day + timedelta(days=13):%d %b}, "
+      f"test {first_day + timedelta(days=14):%d %b} - {first_day + timedelta(days=20):%d %b}")
 mean = all_logs[:, :train_hours].mean(axis=(0, 1))
 spread = all_logs[:, :train_hours].std(axis=(0, 1))
 
