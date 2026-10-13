@@ -1,17 +1,19 @@
-"""Download 3 weeks of the Telecom Italia Milan data into data/raw/telecom_milan/.
+"""Download 4 weeks of the Telecom Italia Milan data into data/raw/telecom_milan/.
 
 "Telecommunications - SMS, Call, Internet - MI" (Telecom Italia Big Data
 Challenge, Harvard Dataverse, doi:10.7910/DVN/EGZHFV), released under ODbL 1.0.
 Activity (SMS, calls, internet) per grid square of Milan every 10 minutes.
 
-Only Mon 2013-11-04 to Sun 2013-11-24 (21 files, 7.3 GB): two weeks to train on,
-one week to test. The full set (62 files, 20.8 GB) isn't needed yet. Each file is
+Mon 2013-11-04 to Sun 2013-11-24 (21 files, 7.3 GB): two weeks to train on, one
+week to test. Plus Mon 2013-11-25 to Sun 2013-12-01 (7 files, added 2026-10-13): a
+second test week, for replicating experiment 29. The full set (62 files, 20.8 GB)
+isn't needed. Each file is
 checked against the MD5 checksum the repository publishes, and skipped if it's
 already there and correct, so the script can be rerun after an interruption.
 
 The repository asks for a one-time guestbook form (name, email, purpose) before
 it serves the files, so a plain download is refused. Download them in a browser
-from https://doi.org/10.7910/DVN/EGZHFV (select these 21 files, fill in the form),
+from https://doi.org/10.7910/DVN/EGZHFV (select these 28 files, fill in the form),
 put the .txt files directly in data/raw/telecom_milan/, then run this script to
 check them.
 """
@@ -47,6 +49,14 @@ FILES = [
     (2674269, "sms-call-internet-mi-2013-11-22.txt", "07a02618f46af85618247104bc46e974"),
     (2674277, "sms-call-internet-mi-2013-11-23.txt", "c0f44412f4d49cd7fa0edfff31ecd887"),
     (2674258, "sms-call-internet-mi-2013-11-24.txt", "8bffcfdffdfa73a18c9bcc64bf1de2b5"),
+    # A fourth week (added 2026-10-13), a second test week for replicating experiment 29.
+    (2674262, "sms-call-internet-mi-2013-11-25.txt", "9865c11cbfc3c907f8bce2eaa10f448c"),
+    (2674270, "sms-call-internet-mi-2013-11-26.txt", "9a878cf4c279094446e5fb8f009f99bc"),
+    (2674274, "sms-call-internet-mi-2013-11-27.txt", "a7d1abf21b6b11aa1725588d16d95c1f"),
+    (2674278, "sms-call-internet-mi-2013-11-28.txt", "b47f3fa389889b9c804039c75968d85d"),
+    (2674264, "sms-call-internet-mi-2013-11-29.txt", "4ee896fb8afb2fb1d7569119533d75c0"),
+    (2674275, "sms-call-internet-mi-2013-11-30.txt", "54ae3a2aeb373d3cbd031ba32dc8e778"),
+    (2674292, "sms-call-internet-mi-2013-12-01.txt", "785eed3199d70341ad3eb427ab157297"),
 ]
 
 

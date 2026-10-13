@@ -10,6 +10,10 @@ squares (a 100 x 100 grid, numbered row by row from 1). Missing rows and blanks
 count as 0. Hours are Milan local time from Mon 2013-11-04 00:00 (no clock change
 in November). Reading 7.3 GB of text takes several minutes, so the result is
 saved to data/telecom_hourly.npz and reused.
+
+load_hourly(days=28) (added 2026-10-13) adds the fourth week, Mon 25 Nov - Sun 1 Dec,
+cached separately in data/telecom_hourly_28d.npz, so the 21-day data experiments
+20-29 read stays exactly as it was.
 """
 
 from pathlib import Path
@@ -28,21 +32,24 @@ ACTIVITIES = ["sms", "calls", "internet"]
 COLUMNS = ["square", "time", "country", "sms_in", "sms_out", "call_in", "call_out", "internet"]
 
 
-def load_hourly() -> np.ndarray:
-    """Activity counts (squares, hours, 3 activities) as float32, before any log."""
-    if CACHE.exists():
-        return np.load(CACHE)["counts"]
-    counts = np.zeros((SQUARES, HOURS, len(ACTIVITIES)), dtype=np.float64)
-    for path in sorted(RAW.glob("sms-call-internet-mi-2013-11-*.txt")):
+def load_hourly(days: int = DAYS) -> np.ndarray:
+    """Activity counts (squares, days * 24 hours, 3 activities) as float32, before any log."""
+    cache = CACHE if days == DAYS else ROOT / "data" / f"telecom_hourly_{days}d.npz"
+    if cache.exists():
+        return np.load(cache)["counts"]
+    hours = days * 24
+    paths = sorted(RAW.glob("sms-call-internet-mi-2013-*.txt"))   # hours outside the range are dropped below
+    counts = np.zeros((SQUARES, hours, len(ACTIVITIES)), dtype=np.float64)
+    for path in paths:
         day = pd.read_csv(path, sep="\t", header=None, names=COLUMNS).fillna(0.0)
         hour = ((day["time"] - START_MS) // 3_600_000).to_numpy()
         square = day["square"].to_numpy() - 1
-        keep = (hour >= 0) & (hour < HOURS)
+        keep = (hour >= 0) & (hour < hours)
         values = np.column_stack([day["sms_in"] + day["sms_out"], day["call_in"] + day["call_out"], day["internet"]])
         np.add.at(counts, (square[keep], hour[keep]), values[keep])
         print(f"  read {path.name}")
     counts = counts.astype(np.float32)
-    np.savez_compressed(CACHE, counts=counts)
+    np.savez_compressed(cache, counts=counts)
     return counts
 
 
