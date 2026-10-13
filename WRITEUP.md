@@ -1,6 +1,6 @@
 # A learned data language: what 30 pre-registered experiments showed
 
-*7–9 October 2026, after experiment 27, the final telecom test (its bar was committed before it ran). A checkpoint, not an end.*
+*7–13 October 2026: written after experiment 27, the final telecom test (its bar was committed before it ran), and extended with experiments 28–29. A checkpoint, not an end.*
 
 ## The idea in one paragraph
 
@@ -68,14 +68,28 @@ The decision rule, committed with the bar: **"If A doesn't beat B on next-day fo
 4. **The fair comparison is byte for byte.** Comparing a 19-byte message with 288 bytes of raw data hid the real question; the right control is the best simple code of the same size.
 5. **Process lessons:** pre-registered bars and whole-interval judgement kept several small "wins" from being over-read (three earlier passes turned out to be within noise); a dictionary needs a health gate before anything is built on it; and a short smoke run can't catch a training breakdown that only appears after several passes.
 
+## After the close: words on top of raw data (experiments 28–29)
+
+The telecom chapter closed the "instead of raw data" form. The next two tests, each with its bar committed first, tried the developer's own vision: raw data stays, and the words add shared context on top, so features don't have to be engineered per model. Both compare against a hand-built feature a data scientist would add: each square's typical value at the forecast hour (the median over the training weeks' days of the same kind), plus how far the latest hour is from its typical value.
+
+| Step | Words added on top of raw data | Change vs raw data alone (next hour / next day) | vs the hand-built feature |
+|---|---|---|---|
+| 28 | 16 meaning characters from the same 24 hours the model already sees | within ±0.4% everywhere (a tie; "too close to call" by its bar, which had no equivalence margin) | 4–16% worse |
+| 29 | 16 profile words per square, learned from its raw two-week history, written once and reused for every question | **−0.9% / −6.1 to −6.4%**, all four intervals clear | 3–9% worse |
+
+**What they show.** Experiment 28 is the clearest statement of the honest limit in the project's own vision: a language can't create information. Words made from the same window the model already reads are a summary of its own input, so they add nothing. Experiment 29 is the first real-data result where learned words clearly improve a model that already has the raw data: context from *outside* the model's window (two weeks of each square's history) helped on all four questions, most on next-day forecasts. But a one-line hand-built feature built from the same two weeks still did better, and the words added nothing once it was there. Verdict, by the bar: "the profile words add the square's context, but less than the hand-built feature".
+
+**How much weight it carries.** Experiment 29 is one city, one test week and one training of the dictionary, and experiment 10's win on images shrank when it was retrained on a second laptop. Until it's replicated on another test week and with another training seed, it's a promising result, not a finding.
+
 ## What stays open
 
-This closes the telecom chapter **for this form of the idea**: words used *instead of* raw data, from this encoder, on this data. It doesn't close the idea. A pattern runs through every result: shared context helped where data was thin (50 labels on images) and faded where data was rich (weeks of history per telecom square, months per road sensor). The untested versions follow from that, each needing its own bar committed first, one at a time (details in `notes/2026-10-07-advisor-chat.md`):
+This closes the telecom chapter **for this form of the idea**: words used *instead of* raw data, from this encoder, on this data. It doesn't close the idea. A pattern runs through every result: shared context helped where data was thin (50 labels on images) or came from outside the model's window (experiment 29), and faded where the model already had the data (weeks of history per telecom square, months per road sensor, experiment 28). The next steps, in order, each with its own bar committed first (details in `notes/2026-10-07-advisor-chat.md`):
 
-1. **Words on top of raw data, not instead of it,** on several questions including one the dictionary was never trained toward, with hand-built baseline features as a third arm and a neural net on raw data as a control.
-2. **Answer from the words when confident, fetch raw data only when unsure:** how much raw data is saved at the same accuracy (the "cheaper" claim).
-3. **New towers with almost no history,** where shared context may be all a point has.
-4. **Transfer:** the frozen telecom dictionary reused on road traffic.
+1. **Replicate experiment 29:** the same test on another test week and with the dictionary retrained with another seed. If the next-day gain holds on both, it's a finding; if not, it was a fluke.
+2. **The decode test:** read "the typical value at the forecast hour" back out of the profile words through the dictionary's drawer, and compare it with the hand-built feature within a 1% margin. This says whether the words lost on information (the profile isn't in them) or on representation (it is, but the forecaster can't read it).
+3. **New towers with almost no history:** profile words from 1–2 days against the hand-built typical value from the same 1–2 days. Comparing with no hand-built feature at all would prove nothing. How the two-week profile encoder reads a short history (padding, or training on short windows) must be decided and written down before the run.
+4. **Answer from the words when confident, fetch raw data only when unsure:** how much raw data is saved at the same accuracy (the "cheaper" claim).
+5. **Transfer:** the frozen telecom dictionary reused on road traffic.
 
 The 15 December 2026 checkpoint stands: if nothing on real data has passed by then, the claim gets rethought again.
 
@@ -85,4 +99,5 @@ The 15 December 2026 checkpoint stands: if nothing on real data has passed by th
 - One forecaster family (LightGBM) for the telecom tests.
 - Effects on images are small (a few points).
 - The "cheaper" side of the claim (one build cost, then cheap reuse) is still theory: its break-even was never measured, and the searchable library file is 14x bigger than the words in it.
-- Untested: the many-tasks reuse the idea is ultimately for (replacing feature engineering across many questions on the same data), and settings where points have little history of their own.
+- Experiment 29, the one positive real-data result, is not yet replicated (one test week, one training seed).
+- Untested: settings where points have little history of their own, and the cost side of reuse. Experiments 28–29 reused one message per square across four questions, a first step toward the many-tasks reuse the idea is ultimately for.
