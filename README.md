@@ -362,6 +362,16 @@ No new encoder variant unless one of these steps reveals a specific gap, written
 
 The expectation was half right: the gain held across seeds, and it held in direction on the later week, but smaller (next-day internet −2.4%, not −6%). By the bar, too close to call. See experiment 29b.
 
+**Success bar for experiment 30, fixed before running: does the profile gain hold across weeks?** (experiment 29b showed the gain doesn't depend on the training seed but varies by week; this measures how much, once, over the remaining ordinary weeks in the dataset. It's a new test with its own bar, not a rerun to rescue 29b.)
+- *Counted weeks, chosen now:* the test weeks starting **Mon 2 Dec, 9 Dec and 16 Dec 2013**, none of them run yet. Only weeks whose outcome isn't known count: the 18 Nov week (experiment 29) and the 25 Nov week (experiment 29b's run W) are already decided, so they're reported beside the others but not counted. The Christmas week (23–29 Dec) is reported but not counted either: holiday traffic is a different question from ordinary weeks. Data: the 56 daily files from 4 Nov to 29 Dec, each checked against its published MD5.
+- *Each week exactly as experiment 29's script runs it (dictionary training seed 0):* train on the two weeks directly before the test week; everything built from the training weeks (the profile dictionary with early stopping and its health gate, the standardisation, the hand-built typical values) is rebuilt for each week; the test week is used only for its final errors.
+- *Present in a week:* on **both** next-day questions (internet and calls), the whole 95% interval of R+P / R − 1 is **below −3%**: experiment 29b's criterion, unchanged (half of experiment 29's gain, so a real gain, not just above zero). A week whose dictionary fails its health gate counts as not present.
+- *Established ("profile context helps across ordinary weeks"):* present in all 3 counted weeks.
+- *Too close to call:* present in 2 of 3, which counts as not established for building on it.
+- *Not established:* present in 1 or 0 of 3. No reruns, no tweaks.
+- *Reported, no bar:* the 18 Nov, 25 Nov and 23 Dec weeks beside the counted ones; every week's next-day and next-hour gains with intervals (how much the size varies); R+P vs R+H and R+H vs R per week (does the hand-built feature vary the same way?); each dictionary's best pass and check error; peak RAM (56 days is double the data, against a 4.65 GB budget).
+- *Expectation, written before the run:* uncertain. The gain cleared −3% on both next-day questions in 1 of the 2 known weeks (18 Nov yes, 25 Nov no: next-day internet −2.4%). If the 25 Nov week was a December run-up effect, the December weeks may look more like it than like 18 Nov, so "all 3" is a demanding bar. Three weeks is a small count, but each is an honest, unseen test.
+
 The list below is the history of earlier planned steps, each with its success bar fixed before running and its result.
 
 1. **Recursive compression on Fashion-MNIST:** build a second level of words from the first-level 7×7 word grid (words of words), and test whether higher-level words help model B more with few labels. Keep level 2 only if it pays for itself (MDL).
